@@ -187,7 +187,7 @@ function calendarDate(value: string) {
 }
 
 /** A stay date as a calendar tile (month strip + big day) beside the weekday, year and time */
-export function DateHighlight({
+function DateHighlight({
   label,
   date,
   time,

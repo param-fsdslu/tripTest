@@ -19,6 +19,13 @@ import { logger } from '@/lib/utils/logger'
  */
 const STALE_BOOKING_MINUTES = 30
 
+/**
+ * Never paid: 'pending' (no order yet), 'processing' (Razorpay order created, then the window
+ * was closed: "Proceed to payment" opens it straight away, so abandoned checkouts end here),
+ * 'failed' (payment attempt failed and wasn't retried)
+ */
+const UNPAID_PAYMENT_STATUSES = ['pending', 'processing', 'failed']
+
 const handler = async (request: NextRequest) => {
   const cronSecret = process.env.CRON_SECRET
   if (cronSecret) {
@@ -39,7 +46,7 @@ const handler = async (request: NextRequest) => {
       cancelled_at: new Date().toISOString(),
     })
     .eq('booking_status', 'pending')
-    .eq('payment_status', 'pending')
+    .in('payment_status', UNPAID_PAYMENT_STATUSES)
     .lt('created_at', cutoff)
     .select('id, booking_reference')
 
@@ -55,7 +62,7 @@ const handler = async (request: NextRequest) => {
       cancelled_at: new Date().toISOString(),
     })
     .eq('booking_status', 'pending')
-    .eq('payment_status', 'pending')
+    .in('payment_status', UNPAID_PAYMENT_STATUSES)
     .lt('created_at', cutoff)
     .select('id, booking_reference')
 

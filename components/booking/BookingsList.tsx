@@ -45,6 +45,7 @@ import { cancelBooking } from '@/lib/actions/bookings'
 import { ReviewDialog } from '@/components/reviews/ReviewDialog'
 import { getReviewByBookingId } from '@/lib/actions/reviews'
 import { invoiceUrl, isInvoiceable } from '@/lib/utils/invoice'
+import { formatRupees } from '@/lib/utils'
 
 /** 'YYYY-MM-DD' as a local calendar date */
 function calendarDate(value: string) {
@@ -78,7 +79,7 @@ function StatusBadge({ booking }: { booking: { booking_status: string; payment_s
   const { label, icon: Icon, cls } = STATUS_STYLES[statusOf(booking)]
   return (
     <span
-      className={`absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider shadow-[0_6px_16px_-6px_rgba(0,0,0,0.45)] ${cls}`}
+      className={`absolute left-3 top-3 inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1.5 text-xs font-bold uppercase tracking-wide shadow-[0_6px_16px_-6px_rgba(0,0,0,0.45)] ${cls}`}
     >
       <Icon className="h-3.5 w-3.5" />
       {label}
@@ -288,7 +289,7 @@ export function BookingsList({ bookings }: BookingsListProps) {
               <div className="text-right">
                 <p className="text-xs text-muted-foreground mb-1">Total</p>
                 <p className="text-xl font-bold text-primary">
-                  ₹{Math.round(booking.total_amount).toLocaleString('en-IN')}
+                  {formatRupees(Number(booking.total_amount))}
                 </p>
               </div>
             </div>
