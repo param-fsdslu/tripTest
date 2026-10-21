@@ -399,6 +399,9 @@ Firebase console setup: enable the Email/Password sign-in provider, create the F
 
 - `netlify.toml` — build `npm run build`, Next.js runtime applied automatically
 - Scheduled job: `netlify/functions/cancel-stale-bookings.mjs` calls `/api/cron/cancel-stale-bookings` every 15 min with `CRON_SECRET` (`vercel.json` holds the equivalent Vercel cron)
+- Node 22 is pinned (`NODE_VERSION` in `netlify.toml`, `engines` in `package.json`): firebase-admin 14 needs it. Its auth module `require()`s `jose` through `jwks-rsa`; jose 6 is ESM-only and only loads on Node ≥ 22.12 / 20.19, so `overrides` / `pnpm.overrides` pin jose 5 (CommonJS) to load on any Node. A failure there breaks every route that imports `lib/db` with Next's bare 500 page
+- `GET /api/health`: Node version, whether the server modules load and Firestore answers, and which required env vars are missing (names only); 503 until all pass. Check it after each deploy
+- Both `package-lock.json` (local npm installs) and `pnpm-lock.yaml` are committed; keep them in step when changing dependencies
 - Server code runs in AWS Lambda, which caps all environment variables at 4KB combined: prefer `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` over the full service-account JSON, and don't add the Supabase variables there
 
 ## Security Practices
