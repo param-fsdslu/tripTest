@@ -28,6 +28,7 @@ import {
   gstDetailsError,
   gstDetailsForRequest,
 } from '@/components/booking/review/GstDetailsFields'
+import { WhatsAppOptIn } from '@/components/booking/review/WhatsAppOptIn'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   User,
@@ -198,6 +199,7 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
   const [childrenAges, setChildrenAges] = useState<number[]>([])
   const [numRooms, setNumRooms] = useState(1)
   const [specialRequests, setSpecialRequests] = useState('')
+  const [whatsappOptIn, setWhatsappOptIn] = useState(true)
   const [gstEnabled, setGstEnabled] = useState(false)
   const [gstDetails, setGstDetails] = useState(EMPTY_GST_DETAILS)
   const [selectedMealPlanIds, setSelectedMealPlanIds] = useState<string[]>([])
@@ -319,6 +321,7 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
         guestEmail: email,
         guestPhone: phone,
         gstDetails: gstDetailsForRequest(gstEnabled, gstDetails),
+        whatsappOptIn,
         checkInDate: format(checkInDate, 'yyyy-MM-dd'),
         checkOutDate: format(checkOutDate, 'yyyy-MM-dd'),
         numAdults,
@@ -560,6 +563,7 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
                       required
                     />
                   </div>
+                  <WhatsAppOptIn checked={whatsappOptIn} onCheckedChange={setWhatsappOptIn} disabled={!!bookingCreated} />
                 </div>
 
                 <div className="space-y-2">

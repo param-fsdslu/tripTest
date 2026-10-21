@@ -320,6 +320,10 @@ export const TABLES: Record<string, TableDef> = {
       /** Set once payment is confirmed, from the per-financial-year counter (lib/db/invoice-numbers.ts) */
       invoice_number: { type: 'text' },
       invoice_date: { type: 'date' },
+      /** The guest agreed to booking updates on WhatsApp (checkbox on the review page) */
+      whatsapp_opt_in: { type: 'bool', default: false },
+      /** When the booking-confirmed email/WhatsApp went out; set once by notifyBookingConfirmed */
+      confirmation_sent_at: { type: 'timestamptz' },
     },
     unique: [['booking_reference']],
     fks: [

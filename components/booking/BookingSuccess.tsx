@@ -14,7 +14,7 @@ import Image from 'next/image'
 import { ArrowRight, Check, Download, Hotel, Mail, Smartphone } from 'lucide-react'
 import { Link } from '@/i18n/routing'
 import { Button } from '@/components/ui/button'
-import { EFFECTIVE_GATEWAY_FEE_PERCENT, FREE_CANCELLATION_HOURS } from '@/lib/config/cancellation-policy'
+import { EFFECTIVE_GATEWAY_FEE_PERCENT, FREE_CANCELLATION_HOURS, freeCancellationDeadline } from '@/lib/config/cancellation-policy'
 import { cn, formatRupees } from '@/lib/utils'
 import { formatPhone } from '@/lib/utils/phone'
 import { invoiceUrl, isInvoiceable } from '@/lib/utils/invoice'
@@ -27,25 +27,6 @@ function calendarDate(value: string) {
 
 const shortDate = (value: string) =>
   calendarDate(value).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
-
-/** When free cancellation ends: FREE_CANCELLATION_HOURS before the property's check-in time, in India time */
-function cancellationDeadline(checkInDate: string, checkInTime?: string | null) {
-  const [y, m, d] = checkInDate.slice(0, 10).split('-').map(Number)
-  const [hh, mm] = (checkInTime || '12:00').split(':').map((n) => Number(n) || 0)
-  const checkInUtc = Date.UTC(y, m - 1, d, hh, mm) - 330 * 60_000
-  const deadline = new Date(checkInUtc - FREE_CANCELLATION_HOURS * 3_600_000)
-  return {
-    passed: Date.now() > deadline.getTime(),
-    label: deadline.toLocaleString('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      hour: 'numeric',
-      minute: '2-digit',
-    }),
-  }
-}
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
@@ -114,7 +95,7 @@ export function BookingSuccess({ booking, group }: { booking: any; group: any[] 
   const adults = Number(booking.num_adults) || 0
   const children = Number(booking.num_children) || 0
   const guestsLabel = [plural(adults, 'adult', 'adults'), children ? plural(children, 'child', 'children') : ''].filter(Boolean).join(', ')
-  const deadline = cancellationDeadline(booking.check_in_date, hotel.check_in_from_time)
+  const deadline = freeCancellationDeadline(booking.check_in_date, hotel.check_in_from_time)
   const invoiceable = group.filter(isInvoiceable)
   const manageHref = isGuestCheckout ? '/auth/login?redirect=/bookings' : `/bookings/${booking.booking_reference}`
 

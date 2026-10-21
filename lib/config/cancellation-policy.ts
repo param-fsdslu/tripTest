@@ -23,6 +23,28 @@ export const EFFECTIVE_GATEWAY_FEE_PERCENT =
   CANCELLATION_FEE_CONFIG.GATEWAY_FEE_PERCENTAGE *
   (1 + CANCELLATION_FEE_CONFIG.GATEWAY_FEE_GST / 100)
 
+/**
+ * When free cancellation ends for a stay: FREE_CANCELLATION_HOURS before the property's check-in
+ * time (default 12:00), in India time. `label` reads like "Thu, 12 Nov, 12:00 pm".
+ */
+export function freeCancellationDeadline(checkInDate: string, checkInTime?: string | null, now: Date = new Date()) {
+  const [y, m, d] = checkInDate.slice(0, 10).split('-').map(Number)
+  const [hh, mm] = (checkInTime || '12:00').split(':').map((n) => Number(n) || 0)
+  const checkInUtc = Date.UTC(y, m - 1, d, hh, mm) - 330 * 60_000
+  const deadline = new Date(checkInUtc - FREE_CANCELLATION_HOURS * 3_600_000)
+  return {
+    passed: now.getTime() > deadline.getTime(),
+    label: deadline.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: 'numeric',
+      minute: '2-digit',
+    }),
+  }
+}
+
 export function calculateGatewayFee(totalAmount: number): number {
   const gatewayFee = (totalAmount * CANCELLATION_FEE_CONFIG.GATEWAY_FEE_PERCENTAGE) / 100
   const gst = (gatewayFee * CANCELLATION_FEE_CONFIG.GATEWAY_FEE_GST) / 100

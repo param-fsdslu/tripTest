@@ -50,6 +50,8 @@ export interface CreateBookingData {
   guestPhone: string
   /** Optional GST details for a company invoice (validated with parseGstDetails) */
   gstDetails?: GstDetailsInput
+  /** The guest agreed to booking messages on WhatsApp */
+  whatsappOptIn?: boolean
   checkInDate: string
   checkOutDate: string
   numAdults: number
@@ -163,6 +165,7 @@ export async function createBooking(data: CreateBookingData) {
       guest_last_name: data.guestLastName,
       guest_email: data.guestEmail?.trim() || null,
       guest_phone: guestPhone,
+      whatsapp_opt_in: data.whatsappOptIn === true,
       ...gst.value,
       check_in_date: data.checkInDate,
       check_out_date: data.checkOutDate,

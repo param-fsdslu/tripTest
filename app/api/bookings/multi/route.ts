@@ -41,6 +41,8 @@ interface MultiBookingBody {
   guestEmail?: string
   /** Optional GST details for a company invoice */
   gstDetails?: GstDetailsInput
+  /** The guest agreed to booking messages on WhatsApp */
+  whatsappOptIn?: boolean
   guestPhone: string
   checkInDate: string
   checkOutDate: string
@@ -267,6 +269,7 @@ const handler = async (request: NextRequest) => {
           guest_last_name: body.guestLastName,
           guest_email: body.guestEmail?.trim() || null,
           guest_phone: guestPhone,
+          whatsapp_opt_in: body.whatsappOptIn === true,
           ...gst.value,
           check_in_date: body.checkInDate,
           check_out_date: body.checkOutDate,

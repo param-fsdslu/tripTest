@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import { createAdminClient } from '@/lib/db/server'
 import { emailService } from '@/lib/services/email.service'
 import { issueInvoiceNumbers } from '@/lib/services/invoice.service'
+import { notifyBookingConfirmed } from '@/lib/services/booking-notifications.service'
 import { withApiLogging } from '@/lib/utils/with-api-logging'
 import { logger } from '@/lib/utils/logger'
 
@@ -205,78 +206,35 @@ async function handlePaymentCaptured(payload: any, db: any) {
   }
   await db.from('payments').insert(paymentRecord)
 
-  // Send confirmation email
-  try {
-    const { data: user } = await db.auth.admin.getUserById(booking.user_id)
-    if (user?.user && updatedBooking) {
-      await emailService.sendPaymentReceipt({
-        to: user.user.email!,
-        userName: user.user.user_metadata?.name || user.user.email!.split('@')[0],
-        bookingId: booking.booking_reference,
-        paymentId: paymentId,
-        amount: booking.total_amount,
-        paymentMethod: `Razorpay (${payment.entity.method || 'Online'})`,
-        hotelName: isBoatBooking
-          ? (updatedBooking.boat?.name || 'Boat Trip')
-          : (updatedBooking.hotel?.name || 'Hotel'),
-        checkInDate: isBoatBooking ? booking.trip_date : booking.check_in_date,
-        checkOutDate: isBoatBooking ? booking.trip_date : booking.check_out_date,
-      })
-    }
-  } catch (emailError) {
-    console.error('Failed to send webhook confirmation email:', emailError)
-  }
-
-  // Notify the hotel owner — this is a safety net for when the client-side
-  // /api/payment/verify call never ran (e.g. the guest closed the tab right
-  // after paying), so the hotel still gets the booking note and guest details.
-  if (!isBoatBooking && updatedBooking?.hotel) {
+  if (isBoatBooking) {
+    // Boat trips keep the plain payment receipt
     try {
-      const hotel = updatedBooking.hotel as { id: string; name: string; email?: string; owner_id?: string }
-      let ownerEmail: string | null = hotel.email ?? null
-      if (!ownerEmail && hotel.owner_id) {
-        const { data: ownerUser } = await db.auth.admin.getUserById(hotel.owner_id)
-        ownerEmail = ownerUser?.user?.email ?? null
-      }
-
-      if (ownerEmail) {
-        const { data: user } = await db.auth.admin.getUserById(booking.user_id)
-        const guestEmail = updatedBooking.guest_email || user?.user?.email || undefined
-        const guestName =
-          [updatedBooking.guest_first_name, updatedBooking.guest_last_name].filter(Boolean).join(' ') ||
-          user?.user?.user_metadata?.full_name ||
-          user?.user?.user_metadata?.name ||
-          guestEmail?.split('@')[0] ||
-          'Guest'
-
-        await emailService.sendHotelOwnerBookingAlert({
-          to: ownerEmail,
-          hotelName: hotel.name,
-          bookingId: updatedBooking.booking_reference,
-          guestName,
-          guestEmail,
-          guestPhone: updatedBooking.guest_phone || undefined,
-          gst: updatedBooking.gst_number
-            ? {
-                number: updatedBooking.gst_number,
-                companyName: updatedBooking.gst_company_name,
-                companyAddress: updatedBooking.gst_company_address,
-              }
-            : null,
-          checkInDate: updatedBooking.check_in_date,
-          checkOutDate: updatedBooking.check_out_date,
-          numAdults: updatedBooking.num_adults || 1,
-          numChildren: updatedBooking.num_children || 0,
-          numRooms: updatedBooking.num_rooms || 1,
-          roomTypeName: updatedBooking.room_type?.name || 'Room',
-          totalAmount: updatedBooking.total_amount,
-          specialRequests: updatedBooking.special_requests || undefined,
+      const { data: user } = await db.auth.admin.getUserById(booking.user_id)
+      const email = updatedBooking?.guest_email || user?.user?.email
+      if (email && updatedBooking) {
+        await emailService.sendPaymentReceipt({
+          to: email,
+          userName: user?.user?.user_metadata?.name || email.split('@')[0],
+          bookingId: booking.booking_reference,
+          paymentId: paymentId,
+          amount: booking.total_amount,
+          paymentMethod: `Razorpay (${payment.entity.method || 'Online'})`,
+          hotelName: updatedBooking.boat?.name || 'Boat Trip',
+          checkInDate: booking.trip_date,
+          checkOutDate: booking.trip_date,
         })
-      } else {
-        logger.always('webhook', 'No owner email found for hotel owner alert', { hotelId: hotel.id })
       }
-    } catch (ownerAlertError) {
-      logger.error('webhook', 'Failed to send hotel owner booking alert', ownerAlertError, { bookingId: booking.id })
+    } catch (emailError) {
+      console.error('Failed to send webhook confirmation email:', emailError)
+    }
+  } else {
+    // Safety net for when /api/payment/verify never ran (e.g. the guest closed the tab right after
+    // paying): confirmation email + invoice, guest/hotel WhatsApp and the hotel email alert. Sent once
+    // per payment, so this does nothing if verify already sent them.
+    try {
+      await notifyBookingConfirmed(booking.id)
+    } catch (notifyError) {
+      logger.error('webhook', 'Booking confirmation notifications failed', notifyError, { bookingId: booking.id })
     }
   }
 

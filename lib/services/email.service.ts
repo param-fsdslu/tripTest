@@ -15,6 +15,7 @@
  */
 import { Resend } from 'resend'
 import { logger } from '@/lib/utils/logger'
+import type { BookingSummary } from '@/lib/utils/booking-summary'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -133,6 +134,44 @@ function detailRow(label: string, value: string) {
       <span class="detail-value">${value}</span>
     </div>
   `
+}
+
+/** Subject and HTML of the guest's "Booking confirmed" email (exported so it can be previewed without sending) */
+export function bookingConfirmedEmail(s: BookingSummary, invoiceCount: number) {
+  const manageUrl = s.isGuestCheckout ? `${BRAND.appUrl}/en/auth/login?redirect=/bookings` : `${BRAND.appUrl}/en/bookings`
+  return {
+    subject: `Booking confirmed: ${s.hotelName} (${s.reference})`,
+    html: emailShell('Booking Confirmed', `You're all set for ${escapeHtml(s.hotelName)}`, `
+      <p>Hi ${escapeHtml(s.guestFirstName)},</p>
+      <p>Your stay is confirmed and your payment has been received. Show your booking ID and a photo ID at check-in.</p>
+
+      <div class="booking-details">
+        <h2 style="margin-top: 0; color: ${BRAND.primary}; font-size: 16px;">${escapeHtml(s.hotelName)}</h2>
+        ${s.hotelAddress ? `<p style="margin: 0 0 12px; color: ${BRAND.mutedText}; font-size: 13px;">${escapeHtml(s.hotelAddress)}</p>` : ''}
+        ${detailRow(s.references.length > 1 ? 'Booking IDs' : 'Booking ID', `<strong>${s.references.join(', ')}</strong>`)}
+        ${detailRow('Check-in', `${s.checkIn}${s.checkInTime ? ` · from ${s.checkInTime}` : ''}`)}
+        ${detailRow('Check-out', `${s.checkOut}${s.checkOutTime ? ` · until ${s.checkOutTime}` : ''}`)}
+        ${detailRow('Nights', String(s.nights))}
+        ${detailRow(s.roomCount > 1 ? 'Rooms' : 'Room', escapeHtml(s.roomsLabel))}
+        ${detailRow('Guests', s.guestsLabel)}
+        ${s.gst ? detailRow('GST invoice to', `${escapeHtml(s.gst.companyName)} (GSTIN ${escapeHtml(s.gst.number)})`) : ''}
+
+        <div class="amount-box">
+          <div class="label">Total Paid</div>
+          <div class="amount">${s.totalPaidLabel}</div>
+        </div>
+        ${s.paymentId ? `<p style="margin: 10px 0 0; text-align: center; color: ${BRAND.mutedText}; font-size: 12px;">Paid online via Razorpay · ${s.paymentId}</p>` : ''}
+      </div>
+
+      ${invoiceCount ? `<p>Your tax invoice${invoiceCount > 1 ? 's are' : ' is'} attached to this email.</p>` : ''}
+      <p style="color: ${BRAND.mutedText}; font-size: 13px;">${s.cancellationNote}</p>
+
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${manageUrl}" class="button">${s.isGuestCheckout ? 'Sign in to manage your booking' : 'View your booking'}</a>
+      </div>
+      ${s.isGuestCheckout && s.guestPhone ? `<p style="text-align: center; color: ${BRAND.mutedText}; font-size: 13px;">Sign in with ${escapeHtml(s.guestPhone)} to see or cancel this booking.</p>` : ''}
+    `),
+  }
 }
 
 export const emailService = {
@@ -261,6 +300,40 @@ export const emailService = {
       return { success: true, data }
     } catch (error) {
       logger.error('email', 'sendBookingCancellation threw', error, { to: params.to })
+      return { success: false, error }
+    }
+  },
+
+  /**
+   * The guest's booking confirmation once payment is verified (hotel stays): stay details, what was
+   * paid, the cancellation deadline, and the tax invoice PDF(s) attached. Sent once per payment by
+   * notifyBookingConfirmed (lib/services/booking-notifications.service.ts).
+   */
+  async sendBookingConfirmed(params: {
+    to: string
+    summary: BookingSummary
+    /** Tax invoice PDFs, one per booking in the payment */
+    invoices: Array<{ filename: string; content: Buffer }>
+  }) {
+    const { subject, html } = bookingConfirmedEmail(params.summary, params.invoices.length)
+    try {
+      logger.network('email', 'POST', 'resend/emails', { to: params.to, subject })
+      const { data, error } = await resend.emails.send({
+        from: BRAND.fromEmail,
+        to: params.to,
+        subject,
+        attachments: params.invoices,
+        html,
+      })
+
+      if (error) {
+        logger.error('email', 'sendBookingConfirmed failed', error, { to: params.to })
+        return { success: false, error }
+      }
+      logger.info('email', 'sendBookingConfirmed sent', { id: data?.id, to: params.to })
+      return { success: true, data }
+    } catch (error) {
+      logger.error('email', 'sendBookingConfirmed threw', error, { to: params.to })
       return { success: false, error }
     }
   },

@@ -38,6 +38,7 @@ import {
   gstDetailsError,
   gstDetailsForRequest,
 } from '@/components/booking/review/GstDetailsFields'
+import { WhatsAppOptIn } from '@/components/booking/review/WhatsAppOptIn'
 import {
   User, Mail, Phone, Users, Baby,
   BedDouble, AlertCircle, CheckCircle2, Loader2,
@@ -188,6 +189,7 @@ export function MultiRoomBookingForm({
   const [numChildren, setNumChildren] = useState(initialChildren ?? 0)
   const [childrenAges, setChildrenAges] = useState<number[]>([])
   const [specialRequests, setSpecialRequests] = useState('')
+  const [whatsappOptIn, setWhatsappOptIn] = useState(true)
   const [gstEnabled, setGstEnabled] = useState(false)
   const [gstDetails, setGstDetails] = useState(EMPTY_GST_DETAILS)
   const [selectedMealPlanIds, setSelectedMealPlanIds] = useState<string[]>([])
@@ -354,6 +356,7 @@ export function MultiRoomBookingForm({
         guestEmail: email,
         guestPhone: phone,
         gstDetails: gstDetailsForRequest(gstEnabled, gstDetails),
+        whatsappOptIn,
         checkInDate: format(checkInDate, 'yyyy-MM-dd'),
         checkOutDate: format(checkOutDate, 'yyyy-MM-dd'),
         numAdults,
@@ -569,6 +572,7 @@ export function MultiRoomBookingForm({
                     <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 98765 43210" className="pl-9" required />
                   </div>
+                  <WhatsAppOptIn checked={whatsappOptIn} onCheckedChange={setWhatsappOptIn} disabled={!!bookingCreated} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">

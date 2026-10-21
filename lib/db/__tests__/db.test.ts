@@ -8,6 +8,7 @@ import { DbClient } from '../client'
 import { MemoryStore } from '../store'
 import type { DbActor, DbUser } from '../types'
 import { assignInvoiceNumber, financialYear } from '../invoice-numbers'
+import { claimOnce } from '../claims'
 
 function setup() {
   const store = new MemoryStore()
@@ -396,6 +397,27 @@ test('invoice numbers: consecutive per financial year, one per booking, no gaps'
 
   assert.equal(await assignInvoiceNumber(store, 'missing', numbering, oct), null)
   assert.equal(financialYear('2027-01-15'), '26-27')
+})
+
+test('booking confirmation is claimed once, even when verify and the webhook race', async () => {
+  const { store, admin } = setup()
+  await seedHotels(admin)
+  await admin.from('bookings').insert({
+    id: 'paid-1', booking_reference: 'BK-PAID', guest_first_name: 'G', guest_last_name: 'X', guest_phone: '+919876543210',
+    hotel_id: 'h1', room_type_id: 'rt1', check_in_date: '2026-11-01', check_out_date: '2026-11-02', num_adults: 1,
+    price_per_night: 1, total_amount: 1.07, payment_status: 'paid', booking_status: 'confirmed',
+  })
+  const claim = () => claimOnce(store, 'booking-confirmed_paid-1', { booking_id: 'paid-1' })
+
+  const [viaVerify, viaWebhook] = await Promise.all([claim(), claim()])
+  assert.equal([viaVerify, viaWebhook].filter(Boolean).length, 1)
+  assert.equal(await claim(), false)
+  assert.ok(store.paths().includes('_claims/booking-confirmed_paid-1'))
+  await assert.rejects(claimOnce(store, 'bad/key'))
+
+  // Opt-in defaults to no: only a ticked checkbox lets us WhatsApp the guest
+  const row = await admin.from('bookings').select('whatsapp_opt_in').eq('id', 'paid-1').single()
+  assert.equal(row.data.whatsapp_opt_in, false)
 })
 
 test('nested layout: child rows live under their parent document', async () => {

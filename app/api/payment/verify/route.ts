@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import { createAdminClient } from '@/lib/db/server'
 import { clearGuestStay, findPayableBookings } from '@/lib/services/guest-checkout.service'
 import { issueInvoiceNumbers } from '@/lib/services/invoice.service'
+import { notifyBookingConfirmed } from '@/lib/services/booking-notifications.service'
 import { emailService } from '@/lib/services/email.service'
 import { withApiLogging } from '@/lib/utils/with-api-logging'
 import { logger } from '@/lib/utils/logger'
@@ -193,106 +194,32 @@ const handler = async (request: NextRequest) => {
       }
     }
 
-    // Guests who booked with just a mobile number may have no email anywhere: skip the receipt then
-    const guestEmail: string | null = primaryBooking.guest_email || user?.email || null
-    const guestName =
-      [primaryBooking.guest_first_name, primaryBooking.guest_last_name].filter(Boolean).join(' ') ||
-      user?.user_metadata?.full_name ||
-      user?.user_metadata?.name ||
-      guestEmail?.split('@')[0] ||
-      'Guest'
-
-    // Send payment receipt email (fire-and-forget)
-    const emailPayload = {
-      to: guestEmail ?? '',
-      userName: guestName,
-      bookingId: primaryBooking.booking_reference,
-      paymentId: razorpay_payment_id,
-      amount: primaryBooking.total_amount,
-      paymentMethod: 'Razorpay (Online)',
-      hotelName: isBoatBooking
-        ? (primaryBooking.boat?.name || 'Boat Trip')
-        : (primaryBooking.hotel?.name || 'Hotel'),
-      checkInDate: isBoatBooking ? primaryBooking.trip_date : primaryBooking.check_in_date,
-      checkOutDate: isBoatBooking ? primaryBooking.trip_date : primaryBooking.check_out_date,
-    }
-    if (guestEmail) {
-      emailService.sendPaymentReceipt(emailPayload).catch((emailError) => {
-        console.error('Failed to send payment receipt email:', emailError)
-      })
-    }
-
-    // Send hotel owner booking alert (hotel bookings only, runs after response via after())
-    logger.always('email', 'Hotel owner alert eligibility check', {
-      bookingId,
-      isBoatBooking,
-      hasHotelRelation: !!primaryBooking.hotel,
-    })
-    if (!isBoatBooking && primaryBooking.hotel) {
-      after(async () => {
-        try {
-          const hotel = primaryBooking.hotel as { id: string; name: string; email?: string; owner_id?: string }
-
-          // Resolve owner email: hotel.email takes priority (the hotel's own contact
-          // address), falling back to the linked owner_id's auth.users email.
-          let ownerEmail: string | null = hotel.email ?? null
-          if (!ownerEmail && hotel.owner_id) {
-            const { data: ownerUser, error: ownerLookupError } = await adminDb.auth.admin.getUserById(hotel.owner_id)
-            if (ownerLookupError) {
-              logger.always('email', 'Failed to look up hotel owner by owner_id', { hotelId: hotel.id, ownerId: hotel.owner_id, error: ownerLookupError.message })
-            }
-            ownerEmail = ownerUser?.user?.email ?? null
-          }
-
-          if (!ownerEmail) {
-            logger.always('email', 'No owner email found for hotel owner alert — set hotel.owner_id or hotel.email', {
-              hotelId: hotel.id,
-              hotelOwnerId: hotel.owner_id ?? null,
-              hotelEmailColumn: hotel.email ?? null,
-            })
-            return
-          }
-
-          logger.always('email', 'Resolved hotel owner alert recipient', {
-            hotelId: hotel.id,
-            resolvedVia: hotel.email ? 'hotel.email column' : 'owner_id (auth.users)',
-            ownerEmail,
-          })
-
-          const sendResult = await emailService.sendHotelOwnerBookingAlert({
-            to: ownerEmail,
-            hotelName: hotel.name,
+    if (isBoatBooking) {
+      // Boat trips keep the plain payment receipt (skipped when there is no email anywhere)
+      const guestEmail: string | null = primaryBooking.guest_email || user?.email || null
+      if (guestEmail) {
+        emailService
+          .sendPaymentReceipt({
+            to: guestEmail,
+            userName: [primaryBooking.guest_first_name, primaryBooking.guest_last_name].filter(Boolean).join(' ') || guestEmail.split('@')[0],
             bookingId: primaryBooking.booking_reference,
-            guestName,
-            guestEmail: guestEmail ?? undefined,
-            guestPhone: primaryBooking.guest_phone ?? undefined,
-            gst: primaryBooking.gst_number
-              ? {
-                  number: primaryBooking.gst_number,
-                  companyName: primaryBooking.gst_company_name,
-                  companyAddress: primaryBooking.gst_company_address,
-                }
-              : null,
-            checkInDate: primaryBooking.check_in_date,
-            checkOutDate: primaryBooking.check_out_date,
-            numAdults: primaryBooking.num_adults || 1,
-            numChildren: primaryBooking.num_children || 0,
-            numRooms: primaryBooking.num_rooms || 1,
-            roomTypeName: primaryBooking.room_type?.name || 'Room',
-            totalAmount: primaryBooking.total_amount,
-            specialRequests: primaryBooking.special_requests || undefined,
+            paymentId: razorpay_payment_id,
+            amount: primaryBooking.total_amount,
+            paymentMethod: 'Razorpay (Online)',
+            hotelName: primaryBooking.boat?.name || 'Boat Trip',
+            checkInDate: primaryBooking.trip_date,
+            checkOutDate: primaryBooking.trip_date,
           })
-
-          logger.always('email', 'Hotel owner alert send result', {
-            bookingId,
-            ownerEmail,
-            success: sendResult.success,
-            error: sendResult.success ? undefined : sendResult.error,
-          })
-        } catch (err) {
-          logger.error('email', 'Failed to send hotel owner booking alert', err, { bookingId })
-        }
-      })
+          .catch((emailError) => console.error('Failed to send payment receipt email:', emailError))
+      }
+    } else {
+      // Hotel stays: confirmation email with the invoice, guest + hotel WhatsApp and the hotel email
+      // alert, once per payment (the webhook may get there first), after the response is sent
+      after(() =>
+        notifyBookingConfirmed(bookingId).catch((err) =>
+          logger.error('payment/verify', 'Booking confirmation notifications failed', err, { bookingId })
+        )
+      )
     }
 
     return NextResponse.json({
