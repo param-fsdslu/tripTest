@@ -4,6 +4,7 @@ import { createClient } from '@/lib/db/server'
 import { requireAdmin } from '@/lib/utils/admin'
 import { revalidatePath } from 'next/cache'
 import { requireHotelAdminPermission } from './_helpers'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 /**
  * Get all room types for a hotel
@@ -78,7 +79,7 @@ export async function createRoomType(roomTypeData: any) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/hotels')
+    revalidatePath(`${ADMIN_PATH}/hotels`)
     revalidatePath('/hotels')
 
     return {
@@ -120,7 +121,7 @@ export async function updateRoomType(roomTypeId: string, roomTypeData: any) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/hotels')
+    revalidatePath(`${ADMIN_PATH}/hotels`)
     revalidatePath('/hotels')
 
     return {
@@ -166,7 +167,7 @@ export async function deleteRoomType(roomTypeId: string) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/hotels')
+    revalidatePath(`${ADMIN_PATH}/hotels`)
     revalidatePath('/hotels')
 
     return {

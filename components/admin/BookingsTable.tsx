@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -24,7 +23,9 @@ import { format } from 'date-fns'
 import { Eye, ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
 import { updateBookingStatus } from '@/lib/actions/admin'
 import { ExportButtons } from './ExportButtons'
+import { StatusPill } from './StatusPill'
 import type { ExportColumn } from '@/lib/utils/export'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 interface Booking {
   id: string
@@ -89,28 +90,6 @@ export function BookingsTable({ bookings, pagination, hotels = [] }: BookingsTab
     } finally {
       setUpdating(null)
     }
-  }
-
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
-      confirmed: 'default',
-      pending: 'secondary',
-      cancelled: 'destructive',
-      completed: 'default',
-    }
-    return variants[status] || 'secondary'
-  }
-
-  const getPaymentStatusBadge = (status: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
-      paid: 'default',
-      pending: 'secondary',
-      processing: 'secondary',
-      failed: 'destructive',
-      refunded: 'secondary',
-      partially_refunded: 'secondary',
-    }
-    return variants[status] || 'secondary'
   }
 
   const paymentStatusLabel = (status: string) =>
@@ -351,9 +330,7 @@ export function BookingsTable({ bookings, pagination, hotels = [] }: BookingsTab
                     >
                       <SelectTrigger className="w-[130px]">
                         <SelectValue>
-                          <Badge variant={getStatusBadge(booking.booking_status)}>
-                            {booking.booking_status}
-                          </Badge>
+                          <StatusPill status={booking.booking_status} label={booking.booking_status} />
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
@@ -365,15 +342,13 @@ export function BookingsTable({ bookings, pagination, hotels = [] }: BookingsTab
                     </Select>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={getPaymentStatusBadge(booking.payment_status)}>
-                      {paymentStatusLabel(booking.payment_status)}
-                    </Badge>
+                    <StatusPill status={booking.payment_status} label={paymentStatusLabel(booking.payment_status)} />
                   </TableCell>
                   <TableCell>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => router.push(`/admin/bookings/${booking.booking_reference}`)}
+                      onClick={() => router.push(`${ADMIN_PATH}/bookings/${booking.booking_reference}`)}
                       title="View booking details"
                     >
                       <Eye className="h-4 w-4" />

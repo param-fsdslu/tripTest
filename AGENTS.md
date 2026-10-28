@@ -53,7 +53,7 @@ app/
 ├── [locale]/boat-bookings/   # Protected: boat bookings
 ├── [locale]/profile/         # Protected: user profile
 ├── [locale]/payment/         # Payment success page
-├── admin/                    # Admin panel (no locale prefix)
+├── console-b69ece1a1dc2/     # Admin panel (no locale prefix); URL = ADMIN_PATH (lib/config/admin-path.ts)
 │   ├── analytics/, blogs/, boats/, boat-bookings/
 │   ├── bookings/, hotels/, payments/, refunds/
 │   ├── rooms/, settings/, users/
@@ -75,7 +75,7 @@ components/
 lib/
 ├── actions/      # Server actions ('use server')
 │   ├── admin/    # Hotel admin CRUD (barrel: admin/index.ts)
-│   │   ├── _helpers.ts, stats.ts, hotels.ts, hotel-images.ts, hotel-amenities.ts
+│   │   ├── _helpers.ts, stats.ts, hotels.ts, hotel-images.ts, hotel-panoramas.ts, hotel-amenities.ts
 │   │   ├── room-types.ts, room-type-images.ts, room-type-amenities.ts
 │   │   ├── bookings.ts, payments.ts, meal-plans.ts
 │   ├── auth.ts, bookings.ts, blogs.ts, reviews.ts, users.ts
@@ -107,12 +107,12 @@ lib/
 Processing order:
 1. **Feature flag blocking** — `isRouteBlocked()` returns 404 for disabled features
 2. **API early return** — `/api/*` routes skip everything below (only feature blocking applies)
-3. **Admin route handling** — `/admin/*` skips i18n; `app/admin/layout.tsx` checks session and role
+3. **Admin route handling** — `ADMIN_PATH` (`/console-b69ece1a1dc2`, from `lib/config/admin-path.ts`) skips i18n; `layout.tsx` there is the bare root (html, fonts, noindex), `(panel)/layout.tsx` checks session and role (else → `ADMIN_PATH/login`), and `login/` is the panel's own sign-in page (`signInAdmin`: email + password, role checked before the session starts; `signOutAdmin` returns there). The hashed path keeps the panel off common-path scans (`/admin` is a plain 404): to change it, rename the route folder and the constant together, and never import it from client code that public pages load
 4. **Protected route guards** — `/dashboard`, `/profile`, `/settings` → redirect to login if there is no `__session` cookie
 5. **next-intl routing** — locale detection and prefixing (en/es/fr)
 
 Middleware runs on the edge, where firebase-admin can't run, so it only checks cookie presence. Pages verify sessions: protected pages redirect to login when invalid; `auth/login` and `auth/signup` pages redirect signed-in users to the dashboard. Import only `lib/firebase/auth/constants.ts` from middleware.
-Matcher: `['/', '/(en|es|fr)/:path*', '/admin/:path*', '/api/:path*', '/((?!_next|_vercel|.*\\..*).*))']`
+Matcher: `['/', '/(en|es|fr)/:path*', '/api/:path*', '/((?!_next|_vercel|.*\\..*).*))']`
 
 ## Feature Flags (`lib/config/features.ts`)
 
@@ -184,7 +184,7 @@ Config: 5min staleTime, 10min gcTime, 2 retries, exponential backoff, refetchOnW
 
 | File | Key Functions |
 |------|--------------|
-| `auth.ts` | `signIn`, `signUp`, `signInWithProvider` (Google/phone ID token), `completeProfile`, `signOut`, `resetPasswordRequest`, `updatePassword` |
+| `auth.ts` | `signIn`, `signUp`, `signInWithProvider` (Google/phone ID token), `completeProfile`, `signOut`, `signInAdmin` / `signOutAdmin` (admin sign-in page), `resetPasswordRequest`, `updatePassword` |
 | `bookings.ts` | `createBooking`, `getBookingByReference`, `getUserBookings`, `cancelBooking` |
 | `admin.ts` | `getAdminStats`, `getAllBookings`, `getAllHotels`, `createHotel`, `updateHotel`, `deleteHotel`, CRUD for room types, amenities, images, payments |
 | `blogs.ts` | `getAllBlogs` (via RPC `get_blogs_with_author`), `createBlog`, `updateBlog`, `deleteBlog`, `uploadBlogImage`, `getBlogStats` |
@@ -229,7 +229,7 @@ Config: `lib/razorpay/config.ts` — server-side instance + client-side key cons
 - `signOut` clears the cookie and revokes all of the user's sessions
 - `db.auth.getUser()` returns a Supabase-compatible user (`id`, `email`, `user_metadata`, `created_at`, `last_sign_in_at`, `email_confirmed_at`). Firebase Auth holds credentials; the `_auth_users` collection holds metadata (role, hotel_ids, names). Only server code writes it.
 - Creating/updating a user upserts the `profiles` row (email, role, hotel_ids; new accounts also seed names, phone, profile_image)
-- **Login UI** is one panel, `components/auth/AuthPanel.tsx`: mobile number first (flag + country code box, `PhoneNumberInput`), CONTINUE → 6-digit SMS code, then round Google / Email buttons; email login/sign-up steps live in `EmailAuthSteps.tsx`. It is shown in a popup (`AuthDialog`, mounted by `Navbar`, opened with `useUIStore().openAuth(...)` — Navbar Sign In/Register and the hotel page Reserve button use it) and on `/auth/login` + `/auth/signup` (`AuthPageCard`, for redirects like `?redirect=/admin`). Side slides come from `lib/config/auth-promos.ts` (`AuthPromo`).
+- **Login UI** is one panel, `components/auth/AuthPanel.tsx`: mobile number first (flag + country code box, `PhoneNumberInput`), CONTINUE → 6-digit SMS code, then round Google / Email buttons; email login/sign-up steps live in `EmailAuthSteps.tsx`. It is shown in a popup (`AuthDialog`, mounted by `Navbar`, opened with `useUIStore().openAuth(...)` — Navbar Sign In/Register and the hotel page Reserve button use it) and on `/auth/login` + `/auth/signup` (`AuthPageCard`, for deep links and redirects like `?redirect=/bookings`; the admin panel has its own sign-in page). Side slides come from `lib/config/auth-promos.ts` (`AuthPromo`).
 - **Google + mobile OTP**: the browser SDK (`lib/firebase/client.ts`, in-memory persistence) runs `signInWithPopup` or `signInWithPhoneNumber` (invisible reCAPTCHA, `use-phone-auth.ts`), then `signInWithProvider(idToken)` verifies the token (only `google.com`/`phone`, signed in < 5 min ago), adopts the account via `upsertFederatedUser`, and sets the same session cookie. New users are created on the fly.
 - If name, email or mobile is missing after that, `CompleteProfileForm` asks once and `completeProfile` fills only empty fields. An email typed there is a contact address in `_auth_users`/`profiles` only, never set on the Firebase account (so nobody can claim someone else's address).
 - Phone-only and email accounts with the same person stay separate accounts (no automatic linking). Redirect targets go through `safeRedirect` (same-site paths only).
@@ -261,7 +261,7 @@ const { data, error } = await db.from('bookings').select('*, hotel:hotels(name)'
 - Only equality filters go to Firestore (no composite indexes needed); other filters, sorting and paging run in memory. Fine at the current data volume (hundreds of rows); add pushdown + indexes if a collection grows large.
 
 ### Hotel Tables
-`hotels`, `hotel_images`, `hotel_amenities`, `room_types`, `room_type_images`, `room_type_amenities`, `rooms`, `bookings`
+`hotels`, `hotel_images`, `hotel_panoramas`, `hotel_amenities`, `room_types`, `room_type_images`, `room_type_amenities`, `rooms`, `bookings`
 
 ### Boat Tables
 `boats`, `boat_images`, `boat_amenities`, `trip_types`, `trip_type_images`, `trip_time_slots`, `boat_bookings`
@@ -291,8 +291,9 @@ const { data, error } = await db.from('bookings').select('*, hotel:hotels(name)'
 
 ## Image & Storage
 
-### Firebase Storage Folders
-`hotel-images`, `room-images`, `boat-images`, `trip-images`, `blog-images`, `review-images`, `profile-images` — top-level folders in the default bucket (the former Supabase buckets). `db.storage.from(folder)` keeps the Supabase-style `upload/getPublicUrl/remove` API. Public URL: `https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<folder>%2F<path>?alt=media`
+### Storage Folders (Bunny CDN, else Firebase Storage)
+`hotel-images`, `room-images`, `boat-images`, `trip-images`, `blog-images`, `review-images`, `profile-images` — top-level folders (the former Supabase buckets). `db.storage.from(folder)` (`lib/firebase/storage.ts`) keeps the Supabase-style `upload/getPublicUrl/remove` API. With the `BUNNY_STORAGE_*` + `BUNNY_CDN_URL` env set (`lib/bunny/config.ts`), uploads go to the Bunny storage zone (`lib/bunny/storage.ts`) and URLs are `<BUNNY_CDN_URL>/<folder>/<path>`; `remove` deletes from Bunny and, best effort, Firebase (older uploads). Without them: Firebase Storage, `https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<folder>%2F<path>?alt=media`. Existing URLs are stored in full, so old Firebase images keep working.
+
 
 ### Helpers (`lib/utils/storage.ts`)
 - `uploadImage(file, bucket, path)` — validates type (JPEG/PNG/WebP) & size (max 5MB), returns `{ url, path }`
@@ -301,13 +302,23 @@ const { data, error } = await db.from('bookings').select('*, hotel:hotels(name)'
 - Path format: `${entityId}/${Date.now()}-${random}.${ext}`
 - `storage_path` column on image tables for easier deletion
 
+### 360° Panoramas
+- `hotel_panoramas` (per hotel: `image_url`, `storage_path`, `title`, `display_order`), kept apart from `hotel_images` so 2:1 photos never land in galleries, cards or emails. Files go to `hotel-images/<hotelId>/360/`
+- Admin: hotel page Images tab → `admin/HotelPanoramasManager`. `preparePanorama` (`lib/utils/panorama.ts`) checks the photo is 2:1 and re-encodes it in the browser as a JPEG ≤ 4096 px wide that fits the 3 MB server action limit; `uploadHotelPanorama` / `deleteHotelPanorama` (`lib/actions/admin/hotel-panoramas.ts`)
+- Viewer: `media/PanoramaViewer` (plain WebGL, no library): drag/swipe to look, pinch / ctrl+scroll / buttons to zoom, arrow keys, full screen; turns slowly until touched (not with reduced motion), draws only while visible. Overlays: the hotel name + panorama title (top-left, `hotelName` prop) and "360 Pano | Powered by" + the Luminexa logo (`public/brand/luminexa-logo.webp`) on the bottom edge at the right, under the buttons. WebGL needs a same-origin image, so pages pass `panoramaViewerSrc(url)` (the next/image optimizer URL)
+- Hotel page: `hotel/PanoramaTour` in a `#tour` section with a "360° View" tab in the sticky nav, only when the hotel has panoramas
+
+### Hotel location fields
+The hotel form (`admin/HotelForm`, new + edit) picks State → District → City/Town from dropdowns (`admin/LocationFields`) when the country is India; other countries get plain text boxes. Data: `lib/data/india-locations.json` (36 states/UTs, 784 districts, 7,094 sub-districts = taluk/tehsil/mandal), loaded on demand via `loadIndiaLocations()` (`lib/utils/india-locations.ts`). Source: the Local Government Directory via https://ramseraph.github.io/opendata/lgd/ (snapshot 2026-10-27); rebuild with `scripts/build-india-locations.mjs` (instructions in the file). City offers "Other (type the place)" for spots that aren’t a sub-district (Gokarna, Murudeshwar). `hotels.district` is new: older hotels get it filled from their city when editing. Hotel search matches the stored city text, so `PREFERRED_NAMES` in the build script keeps common spellings (`Honavar` → `Honnavar`).
+
 ### Next.js Image Config (`next.config.ts`)
-Remote patterns: `images.unsplash.com`, `firebasestorage.googleapis.com/v0/b/**`, legacy `*.supabase.co/storage/v1/object/public/**` (remove after the storage migration)
+Remote patterns: `images.unsplash.com`, `**.b-cdn.net` (Bunny pull zone; a custom `BUNNY_CDN_URL` domain is added too), `firebasestorage.googleapis.com/v0/b/**`, legacy `*.supabase.co/storage/v1/object/public/**` (remove after the storage migration)
 
 ## Page Layout
 
 - Homepage (`app/[locale]/page.tsx`): `Hero` (photo + Deep Teal gradient, `SearchWidget` card overlapping its bottom edge; its hotel tab is `search/HotelSearchBox`: destination, check-in/out with nights, guests picker, price per night → `minPrice`/`maxPrice`, stay-type chips → `propertyType`; dates default to tonight → tomorrow) → `home/TrustBar` → `FeaturedHotels` (full-photo `home/FeaturedStayCard`s, plus `ExploreStaysCard` filling a 2-of-3 last row) → `PackagesSection` → `FeaturedBlogs` → `home/ListPropertyCta` → `Footer`
 - **Page width**: wrap page content in `page-container` (utility in `app/globals.css`): centred, content max 1200px like MakeMyTrip, side gutters 16px → 24px (sm) → 32px (lg) → 40px (xl). Don't use `container` (its width jumps per breakpoint). Narrow pages (profile, bookings) use `mx-auto max-w-* px-4 sm:px-6 lg:px-8`.
+- Admin panel UI: `admin/AdminShell` (from `(panel)/layout.tsx`) = `admin/AdminNav` sidebar (light, nav in groups Overview / Operations / Finance / Content / System, role- and feature-filtered; a section stays highlighted on its sub-pages; slides in on phones) + sticky top bar naming the current section + content at full width beside the sidebar (24px gutters, stops at 1680px). Panel-only looks for shared tables / cards / tabs are set as scoped classes on the content wrapper (`CONTENT_STYLES`), so `components/ui` stays as the public site uses it. Every admin page starts with `admin/AdminPageHeader` (title, description, `backHref` / `backLabel`, `actions`); figures use `admin/StatCard` (compact: tinted icon left, figures right; `tone`, `toneValue`); statuses use `admin/StatusPill` (solid fill, white text) everywhere a booking or payment status shows (dashboard, hotel + boat bookings tables and booking pages); one colour per status lives in `admin/status-colors.ts`, shared with the calendar: confirmed / paid = brand green (`primary`), pending / processing / refund requested = amber, checked in = blue, checked out / completed / refunded = grey, cancelled / failed = red. The dashboard renders `admin/DashboardView`: four key figures, then (hotel admins only) `admin/BookingCalendar`, then Recent Bookings as a table beside a Bookings panel (today / pending / confirmed). The calendar is a month (Monday first) of day tiles with gaps, stays as bars from check-in through the last night, coloured by status from `status-colors.ts` (solid fill, white text, darker left edge; cancelled struck through), each linking to its booking: guest name in bold, then room type ×rooms · check-in time (`hotels.check_in_from_time`) · dates; a bar of 2+ days also shows nights · guests and "Out <date> · <check_out_time>" at its right end (or › when it carries on into the next week); each week only gets the bar rows it uses; and a hover card with the whole stay (room, guests, check-in/out date + time, nights, status, ref); up to 3 rows a week, then "+N more" with the day list; hotel filter when the admin has several hotels; Show cancelled; months load on demand via `getBookingCalendar` (`lib/actions/admin/bookings.ts`, scoped to the admin hotels)
 - Section headings use `components/layout/SectionHeader` (gold eyebrow, Manrope title, optional description and right-aligned action) — reuse it for new sections
 - Sections alternate ivory (`bg-background`) and white bands (`bg-card border-y border-border`); cards are white with a hairline `border-border` and a soft teal-tinted shadow on hover
 - Navbar is 64px (72px from `sm`); fixed-header offsets use `pt-16 sm:pt-[72px]` and sticky bars `top-16 sm:top-[72px]`

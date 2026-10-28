@@ -2,10 +2,22 @@ import Image from 'next/image'
 import { Mail, MapPin, Phone } from 'lucide-react'
 import { isFeatureEnabled } from '@/lib/config/features'
 import { ListPropertyButton } from '@/components/listing/ListPropertyButton'
+import { PackageEnquiryButton } from '@/components/packages/PackageEnquiryButton'
 
-const exploreLinks = [
+const serviceLinks = [
   { href: '/hotels', label: 'Hotels & homestays', show: isFeatureEnabled('hotels') },
   { href: '/boats', label: 'Boat trips', show: isFeatureEnabled('boats') },
+].filter((l) => l.show)
+
+/** Experiences & packages: each opens the WhatsApp enquiry form (packageName goes into the message) */
+const packageLinks = [
+  { packageName: 'Group Travel', label: 'Group travel' },
+  { packageName: 'Wedding Photo Shoot', label: 'Wedding photo shoots' },
+  { packageName: 'Tourism Package', label: 'Tourism packages' },
+  { packageName: 'Adventure Sports', label: 'Adventure sports' },
+]
+
+const exploreLinks = [
   { href: '/blog', label: 'Travel blog', show: isFeatureEnabled('blogs') },
   { href: '/reviews', label: 'Guest reviews', show: true },
   { href: '/about', label: 'About us', show: true },
@@ -41,6 +53,20 @@ export function Footer() {
           <div>
             <h4 className="mb-4 text-sm font-semibold text-white">Explore</h4>
             <ul className="space-y-2.5">
+              {serviceLinks.map((l) => (
+                <li key={l.href}>
+                  <a href={l.href} className={linkClass}>
+                    {l.label}
+                  </a>
+                </li>
+              ))}
+              {packageLinks.map((p) => (
+                <li key={p.packageName}>
+                  <PackageEnquiryButton packageName={p.packageName} className={`${linkClass} text-left`}>
+                    {p.label}
+                  </PackageEnquiryButton>
+                </li>
+              ))}
               {exploreLinks.map((l) => (
                 <li key={l.href}>
                   <a href={l.href} className={linkClass}>

@@ -52,6 +52,8 @@ export interface CreateBookingData {
   gstDetails?: GstDetailsInput
   /** The guest agreed to booking messages on WhatsApp */
   whatsappOptIn?: boolean
+  /** Travelling with pets */
+  withPets?: boolean
   checkInDate: string
   checkOutDate: string
   numAdults: number
@@ -166,6 +168,7 @@ export async function createBooking(data: CreateBookingData) {
       guest_email: data.guestEmail?.trim() || null,
       guest_phone: guestPhone,
       whatsapp_opt_in: data.whatsappOptIn === true,
+      with_pets: data.withPets === true,
       ...gst.value,
       check_in_date: data.checkInDate,
       check_out_date: data.checkOutDate,
@@ -232,6 +235,7 @@ export async function createBooking(data: CreateBookingData) {
         checkOut: data.checkOutDate,
         adults: data.numAdults,
         children: data.numChildren,
+        pets: data.withPets === true,
       })
     }
 

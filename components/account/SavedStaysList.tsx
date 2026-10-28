@@ -24,6 +24,7 @@ function continueHref(stay: SavedStaySummary, today: string) {
     adults: String(stay.adults),
   })
   if (stay.children) params.set('children', String(stay.children))
+  if (stay.pets) params.set('pets', '1')
   return `/hotels/${stay.slug}/book?${params.toString()}`
 }
 
@@ -100,7 +101,7 @@ export function SavedStaysList({ stays: initialStays }: { stays: SavedStaySummar
                   <p className="flex items-center gap-1.5">
                     <Calendar className="h-3.5 w-3.5 shrink-0" />
                     {datesAhead
-                      ? `${day(stay.checkIn!)} → ${day(stay.checkOut!)} · ${guests} ${guests === 1 ? 'guest' : 'guests'}`
+                      ? `${day(stay.checkIn!)} → ${day(stay.checkOut!)} · ${guests} ${guests === 1 ? 'guest' : 'guests'}${stay.pets ? ' · with pets' : ''}`
                       : stay.checkIn
                         ? 'Those dates have passed. Pick new ones.'
                         : 'No dates picked yet'}

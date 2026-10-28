@@ -84,6 +84,7 @@ export interface GuestStayInput {
   checkOut?: string
   adults?: number
   children?: number
+  pets?: boolean
 }
 
 /** Keeps a guest's rooms under their mobile number (saved_stays without user_id) until paid or claimed */
@@ -95,6 +96,7 @@ export async function saveGuestStay(input: GuestStayInput) {
     check_out_date: input.checkOut ?? null,
     num_adults: input.adults ?? 1,
     num_children: input.children ?? 0,
+    with_pets: input.pets === true,
   }
   const { data: existing } = await admin
     .from('saved_stays')

@@ -8,6 +8,7 @@ import type {
   HotelAdminPermission,
 } from '@/lib/utils/hotelAdminPermissions'
 import { ALL_PERMISSION_KEYS } from '@/lib/utils/hotelAdminPermissions'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 /**
  * Fetches all hotel admin permissions.
@@ -74,7 +75,7 @@ export async function updateHotelAdminPermission(
 
     if (error) throw new Error(error.message)
 
-    revalidatePath('/admin/settings')
+    revalidatePath(`${ADMIN_PATH}/settings`)
     return { success: true }
   } catch (error: any) {
     console.error('Error updating hotel admin permission:', error)

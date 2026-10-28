@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/db/server'
+import { bunnyObjectPathFromUrl } from '@/lib/bunny/storage'
 import { objectPathFromUrl } from '@/lib/firebase/storage'
 
-/** Top-level folders in the Firebase Storage bucket (the former Supabase bucket names) */
+/** Top-level storage folders, in Bunny Storage or the Firebase bucket (the former Supabase bucket names) */
 export const STORAGE_BUCKETS = {
   HOTEL_IMAGES: 'hotel-images',
   ROOM_IMAGES: 'room-images',
@@ -12,7 +13,7 @@ export const STORAGE_BUCKETS = {
 } as const
 
 /**
- * Upload an image to Firebase Storage
+ * Upload an image to storage (Bunny when configured, else Firebase)
  */
 export async function uploadImage(
   file: File,
@@ -55,7 +56,7 @@ export async function uploadImage(
 }
 
 /**
- * Delete an image from Firebase Storage
+ * Delete an image from storage
  */
 export async function deleteImage(
   bucket: string,
@@ -111,6 +112,10 @@ export function validateImageFile(file: File): {
  */
 export function extractStoragePath(url: string, bucket: string): string | null {
   try {
+    // <BUNNY_CDN_URL>/<folder>/<path>
+    const bunnyPath = bunnyObjectPathFromUrl(url, bucket)
+    if (bunnyPath) return bunnyPath
+
     // https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<folder>%2F<path>?alt=media
     const firebasePath = objectPathFromUrl(url, bucket)
     if (firebasePath) return firebasePath

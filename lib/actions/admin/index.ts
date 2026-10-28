@@ -12,6 +12,7 @@ export {
   updateHotelStatus,
 } from './hotels';
 export { addHotelImage, uploadHotelImage, deleteHotelImage } from './hotel-images';
+export { uploadHotelPanorama, deleteHotelPanorama } from './hotel-panoramas';
 export { getAllAmenities, addHotelAmenity, removeHotelAmenity } from './hotel-amenities';
 export {
   getHotelRoomTypes,
@@ -21,7 +22,14 @@ export {
 } from './room-types';
 export { addRoomTypeImage, uploadRoomTypeImage, deleteRoomTypeImage } from './room-type-images';
 export { addRoomTypeAmenity, removeRoomTypeAmenity } from './room-type-amenities';
-export { getAllBookings, getBookingDetails, updateBookingStatus, getAdminHotelsList } from './bookings';
+export {
+  getAllBookings,
+  getBookingDetails,
+  updateBookingStatus,
+  getAdminHotelsList,
+  getBookingCalendar,
+  type CalendarBooking,
+} from './bookings';
 export {
   getPayments,
   getPaymentStats,

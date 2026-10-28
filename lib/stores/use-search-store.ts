@@ -8,6 +8,8 @@ interface SearchStateData {
   adults: number
   children: number
   rooms: number
+  /** Travelling with pets (the checkbox in Rooms & Guests); carried to the booking as `with_pets` */
+  pets: boolean
   boatDate: Date | undefined
   activeTab: 'hotels' | 'boats'
   isGuestOpen: boolean
@@ -21,6 +23,7 @@ interface SearchActions {
   setAdults: (adults: number) => void
   setChildren: (children: number) => void
   setRooms: (rooms: number) => void
+  setPets: (pets: boolean) => void
   setBoatDate: (date: Date | undefined) => void
   setActiveTab: (tab: 'hotels' | 'boats') => void
   setIsGuestOpen: (open: boolean) => void
@@ -37,6 +40,7 @@ const initialState: SearchStateData = {
   adults: 2,
   children: 0,
   rooms: 1,
+  pets: false,
   boatDate: undefined,
   activeTab: 'hotels',
   isGuestOpen: false,
@@ -52,6 +56,7 @@ export const useSearchStore = create<SearchState>()((set) => ({
   setAdults: (adults) => set({ adults }),
   setChildren: (children) => set({ children }),
   setRooms: (rooms) => set({ rooms }),
+  setPets: (pets) => set({ pets }),
   setBoatDate: (boatDate) => set({ boatDate }),
   setActiveTab: (activeTab) => set({ activeTab }),
   setIsGuestOpen: (isGuestOpen) => set({ isGuestOpen }),
@@ -65,5 +70,6 @@ export const useSearchStore = create<SearchState>()((set) => ({
       adults: params.adults ? Number(params.adults) : initialState.adults,
       children: params.children ? Number(params.children) : initialState.children,
       rooms: params.rooms ? Number(params.rooms) : initialState.rooms,
+      pets: params.pets === '1',
     }),
 }))

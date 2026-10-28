@@ -43,6 +43,8 @@ interface MultiBookingBody {
   gstDetails?: GstDetailsInput
   /** The guest agreed to booking messages on WhatsApp */
   whatsappOptIn?: boolean
+  /** Travelling with pets */
+  withPets?: boolean
   guestPhone: string
   checkInDate: string
   checkOutDate: string
@@ -270,6 +272,7 @@ const handler = async (request: NextRequest) => {
           guest_email: body.guestEmail?.trim() || null,
           guest_phone: guestPhone,
           whatsapp_opt_in: body.whatsappOptIn === true,
+          with_pets: body.withPets === true,
           ...gst.value,
           check_in_date: body.checkInDate,
           check_out_date: body.checkOutDate,
@@ -334,6 +337,7 @@ const handler = async (request: NextRequest) => {
         checkOut: body.checkOutDate,
         adults: body.numAdults,
         children: body.numChildren,
+        pets: body.withPets === true,
       })
     }
 

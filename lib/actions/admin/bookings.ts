@@ -5,6 +5,7 @@ import { requireAdmin, requireSuperAdmin, getAdminHotelAccess } from '@/lib/util
 import { revalidatePath } from 'next/cache'
 import { emailService } from '@/lib/services/email.service'
 import { verifyHotelAccess } from './_helpers'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 /**
  * Get all bookings with filters
@@ -117,6 +118,76 @@ export async function getAllBookings(filters?: {
 /**
  * Get list of hotels for filter dropdown (admin only)
  */
+/** A booking as the dashboard's booking calendar draws it */
+export interface CalendarBooking {
+  id: string
+  booking_reference: string
+  guest_first_name: string | null
+  guest_last_name: string | null
+  check_in_date: string
+  check_out_date: string
+  booking_status: string
+  payment_status: string
+  num_rooms: number | null
+  num_adults: number | null
+  num_children: number | null
+  hotel_id: string
+  hotel: { name: string | null; check_in_from_time: string | null; check_out_time: string | null } | null
+  room_type: { name: string | null } | null
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * Bookings staying between `from` and `to` (check-in before `to`, check-out after `from`,
+ * both YYYY-MM-DD) for the hotel admin dashboard's booking calendar, limited to the admin's
+ * hotels. Cancelled bookings only when asked for.
+ */
+export async function getBookingCalendar(params: {
+  from: string
+  to: string
+  hotelId?: string
+  includeCancelled?: boolean
+}): Promise<{ success: boolean; bookings: CalendarBooking[]; error?: string }> {
+  try {
+    await requireAdmin()
+    const db = await createClient()
+    const adminAccess = await getAdminHotelAccess()
+    if (!adminAccess) throw new Error('Unauthorized')
+    if (!ISO_DATE.test(params.from) || !ISO_DATE.test(params.to)) throw new Error('Invalid dates')
+
+    let query = db
+      .from('bookings')
+      .select(
+        `
+        id, booking_reference, guest_first_name, guest_last_name, check_in_date, check_out_date,
+        booking_status, payment_status, num_rooms, num_adults, num_children, hotel_id,
+        hotel:hotels(name, check_in_from_time, check_out_time),
+        room_type:room_types(name)
+      `
+      )
+      .lt('check_in_date', params.to)
+      .gt('check_out_date', params.from)
+
+    if (adminAccess.hotelIds !== null) {
+      query = query.in('hotel_id', adminAccess.hotelIds)
+    }
+    if (params.hotelId) {
+      query = query.eq('hotel_id', params.hotelId)
+    }
+    if (!params.includeCancelled) {
+      query = query.neq('booking_status', 'cancelled')
+    }
+
+    const { data, error } = await query.order('check_in_date')
+    if (error) throw new Error(error.message)
+    return { success: true, bookings: (data ?? []) as CalendarBooking[] }
+  } catch (error: any) {
+    console.error('Error fetching booking calendar:', error)
+    return { success: false, bookings: [], error: error.message || 'Failed to load bookings' }
+  }
+}
+
 export async function getAdminHotelsList() {
   try {
     await requireAdmin()
@@ -281,7 +352,7 @@ export async function updateBookingStatus(
       console.error('Failed to send status update email:', emailError)
     }
 
-    revalidatePath('/admin/bookings')
+    revalidatePath(`${ADMIN_PATH}/bookings`)
     revalidatePath('/dashboard')
 
     return {

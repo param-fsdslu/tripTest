@@ -39,6 +39,7 @@ import {
   gstDetailsForRequest,
 } from '@/components/booking/review/GstDetailsFields'
 import { WhatsAppOptIn } from '@/components/booking/review/WhatsAppOptIn'
+import { PetsOptIn } from '@/components/booking/review/PetsOptIn'
 import {
   User, Mail, Phone, Users, Baby,
   BedDouble, AlertCircle, CheckCircle2, Loader2,
@@ -82,6 +83,7 @@ interface Hotel {
   check_out_time?: string
   star_rating?: number | null
   image_url?: string | null
+  pet_policy_text?: string | null
 }
 
 interface MultiRoomBookingFormProps {
@@ -98,6 +100,8 @@ interface MultiRoomBookingFormProps {
   initialCheckOut?: Date
   initialAdults?: number
   initialChildren?: number
+  /** Travelling with pets, from the search box */
+  initialPets?: boolean
 }
 
 // ── Meal plan helpers (same as BookingForm) ───────────────────────────────────
@@ -145,6 +149,7 @@ export function MultiRoomBookingForm({
   initialCheckOut,
   initialAdults,
   initialChildren,
+  initialPets,
 }: MultiRoomBookingFormProps) {
   const router = useRouter()
   const savedGuest = useBookingStore((s) => s.guestDetails)
@@ -168,6 +173,7 @@ export function MultiRoomBookingForm({
       checkOut: initialCheckOut ? format(initialCheckOut, 'yyyy-MM-dd') : undefined,
       adults: initialAdults,
       children: initialChildren,
+      pets: initialPets,
     }).catch(() => {})
     // Once per visit to the review page
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -187,6 +193,7 @@ export function MultiRoomBookingForm({
   const [checkOutDate, setCheckOutDate] = useState<Date | undefined>(initialCheckOut)
   const [numAdults, setNumAdults] = useState(initialAdults ?? 1)
   const [numChildren, setNumChildren] = useState(initialChildren ?? 0)
+  const [withPets, setWithPets] = useState(initialPets ?? false)
   const [childrenAges, setChildrenAges] = useState<number[]>([])
   const [specialRequests, setSpecialRequests] = useState('')
   const [whatsappOptIn, setWhatsappOptIn] = useState(true)
@@ -293,6 +300,7 @@ export function MultiRoomBookingForm({
     `${numAdults} ${numAdults === 1 ? 'Adult' : 'Adults'}`,
     numChildren > 0 ? `${numChildren} ${numChildren === 1 ? 'Child' : 'Children'}` : null,
     `${totalRooms} ${totalRooms === 1 ? 'Room' : 'Rooms'}`,
+    withPets ? 'With pets' : null,
   ]
     .filter(Boolean)
     .join(' · ')
@@ -357,6 +365,7 @@ export function MultiRoomBookingForm({
         guestPhone: phone,
         gstDetails: gstDetailsForRequest(gstEnabled, gstDetails),
         whatsappOptIn,
+        withPets,
         checkInDate: format(checkInDate, 'yyyy-MM-dd'),
         checkOutDate: format(checkOutDate, 'yyyy-MM-dd'),
         numAdults,
@@ -505,6 +514,8 @@ export function MultiRoomBookingForm({
                   </Select>
                 </div>
               </div>
+
+              <PetsOptIn checked={withPets} onCheckedChange={setWithPets} policy={hotel.pet_policy_text} disabled={!!bookingCreated} />
 
               {numChildren > 0 && (
                 <div className="space-y-3">

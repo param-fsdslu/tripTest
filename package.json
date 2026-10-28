@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test:db": "tsc -p lib/db/__tests__/tsconfig.json && node node_modules/.cache/db-tests/lib/db/__tests__/db.test.js",
-    "seed:demo": "tsc -p scripts/tsconfig.json && node --env-file=.env node_modules/.cache/scripts/scripts/seed-demo-hotel.js"
+    "seed:demo": "tsc -p scripts/tsconfig.json && node --env-file=.env node_modules/.cache/scripts/scripts/seed-demo-hotel.js",
+    "admin:create": "tsc -p scripts/tsconfig.json && node --env-file=.env node_modules/.cache/scripts/scripts/create-admin.js"
   },
   "dependencies": {
     "@hookform/resolvers": "5.2.2",

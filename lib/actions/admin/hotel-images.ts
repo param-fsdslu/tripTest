@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/utils/admin'
 import { revalidatePath } from 'next/cache'
 import { STORAGE_BUCKETS, extractStoragePath } from '@/lib/utils/storage'
 import { requireHotelAdminPermission } from './_helpers'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 /**
  * Add hotel image (from URL)
@@ -35,7 +36,7 @@ export async function addHotelImage(
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/hotels')
+    revalidatePath(`${ADMIN_PATH}/hotels`)
     revalidatePath(`/hotels`)
 
     return {
@@ -74,7 +75,7 @@ export async function uploadHotelImage(
     const fileExt = file.name.split('.').pop()
     const fileName = `${hotelId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
 
-    // Upload to Firebase Storage
+    // Upload to storage (Bunny CDN when configured, else Firebase)
     const { data: uploadData, error: uploadError } = await db.storage
       .from(STORAGE_BUCKETS.HOTEL_IMAGES)
       .upload(fileName, file, {
@@ -110,7 +111,7 @@ export async function uploadHotelImage(
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/hotels')
+    revalidatePath(`${ADMIN_PATH}/hotels`)
     revalidatePath(`/hotels`)
 
     return {
@@ -163,7 +164,7 @@ export async function deleteHotelImage(imageId: string) {
       }
     }
 
-    revalidatePath('/admin/hotels')
+    revalidatePath(`${ADMIN_PATH}/hotels`)
     revalidatePath(`/hotels`)
 
     return {

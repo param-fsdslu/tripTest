@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/utils/admin'
 import { revalidatePath } from 'next/cache'
 import { verifyHotelAccess, requireHotelAdminPermission } from './_helpers'
 import type { PriceRule } from '@/lib/types'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 /** Open-ended date range used for weekend rules, which apply indefinitely until changed. */
 const WEEKEND_VALID_FROM = '2020-01-01'
@@ -96,7 +97,7 @@ export async function setWeekendPricing(data: {
       if (insertError) throw new Error(insertError.message)
     }
 
-    revalidatePath(`/admin/hotels/${data.hotel_id}`)
+    revalidatePath(`${ADMIN_PATH}/hotels/${data.hotel_id}`)
     return { success: true }
   } catch (err: any) {
     console.error('Error setting weekend pricing:', err)
@@ -168,7 +169,7 @@ export async function createPriceOverride(data: {
 
     if (error) throw new Error(error.message)
 
-    revalidatePath(`/admin/hotels/${data.hotel_id}`)
+    revalidatePath(`${ADMIN_PATH}/hotels/${data.hotel_id}`)
     return { success: true, rule }
   } catch (err: any) {
     console.error('Error creating price override:', err)
@@ -206,7 +207,7 @@ export async function deletePriceRule(
 
     if (error) throw new Error(error.message)
 
-    revalidatePath(`/admin/hotels/${hotelId}`)
+    revalidatePath(`${ADMIN_PATH}/hotels/${hotelId}`)
     return { success: true }
   } catch (err: any) {
     console.error('Error deleting price rule:', err)

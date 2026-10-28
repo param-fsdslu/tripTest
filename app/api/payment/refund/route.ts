@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { razorpayInstance } from '@/lib/razorpay/config'
+import { razorpayErrorMessage } from '@/lib/razorpay/errors'
 import { createClient, createAdminClient } from '@/lib/db/server'
 import { emailService } from '@/lib/services/email.service'
 import { withApiLogging } from '@/lib/utils/with-api-logging'
@@ -554,6 +555,7 @@ async function postHandler(request: NextRequest) {
         },
       })
     } catch (razorpayError: any) {
+      const gatewayError = razorpayErrorMessage(razorpayError)
       logger.error('refund/post', 'Razorpay refund call failed', razorpayError, {
         bookingId,
         gatewayPaymentId: payment.payment_gateway_payment_id,
@@ -570,7 +572,7 @@ async function postHandler(request: NextRequest) {
         processed_by: 'admin',
         processed_by_user_id: user.id,
         status: 'failed',
-        error_message: razorpayError.message,
+        error_message: gatewayError,
         payment_gateway_payment_id: payment.payment_gateway_payment_id,
       }
       if (payment.id) failedRefundRecord.payment_id = payment.id
@@ -581,12 +583,13 @@ async function postHandler(request: NextRequest) {
       }
       await db.from('refund_transactions').insert(failedRefundRecord)
 
+      // The admin sees `error`, so it carries Razorpay's reason
       return NextResponse.json(
         {
-          error: 'Failed to process refund with payment gateway',
-          details: razorpayError.message,
+          error: `Razorpay refused the refund: ${gatewayError}`,
+          details: gatewayError,
         },
-        { status: 500 }
+        { status: 502 }
       )
     }
   } catch (error: any) {

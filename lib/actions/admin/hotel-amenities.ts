@@ -4,6 +4,7 @@ import { createClient } from '@/lib/db/server'
 import { requireAdmin } from '@/lib/utils/admin'
 import { revalidatePath } from 'next/cache'
 import { requireHotelAdminPermission } from './_helpers'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 /**
  * Get all amenities
@@ -65,7 +66,7 @@ export async function addHotelAmenity(hotelId: string, amenityId: string) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/hotels')
+    revalidatePath(`${ADMIN_PATH}/hotels`)
     revalidatePath(`/hotels`)
 
     return {
@@ -99,7 +100,7 @@ export async function removeHotelAmenity(hotelAmenityId: string) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/hotels')
+    revalidatePath(`${ADMIN_PATH}/hotels`)
     revalidatePath(`/hotels`)
 
     return {

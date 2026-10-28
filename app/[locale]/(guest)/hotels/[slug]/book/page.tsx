@@ -51,15 +51,16 @@ export default async function BookingPage({
   searchParams,
 }: {
   params: Promise<{ slug: string; locale: string }>
-  searchParams: Promise<{ roomId?: string; rooms?: string; checkIn?: string; checkOut?: string; adults?: string; children?: string }>
+  searchParams: Promise<{ roomId?: string; rooms?: string; checkIn?: string; checkOut?: string; adults?: string; children?: string; pets?: string }>
 }) {
   const { slug } = await params
-  const { roomId, rooms: roomsParam, checkIn, checkOut, adults, children } = await searchParams
+  const { roomId, rooms: roomsParam, checkIn, checkOut, adults, children, pets } = await searchParams
 
   const initialCheckIn = checkIn ? new Date(checkIn) : undefined
   const initialCheckOut = checkOut ? new Date(checkOut) : undefined
   const initialAdults = adults ? parseInt(adults) : undefined
   const initialChildren = children ? parseInt(children) : undefined
+  const initialPets = pets === '1'
 
   // Determine mode: multi-room takes priority over single roomId
   const isMultiRoom = !!roomsParam
@@ -87,7 +88,7 @@ export default async function BookingPage({
   const { data: hotel, error: hotelError } = await db
     .from('hotels')
     .select(
-      'id, name, address_line_1, city, state, star_rating, check_in_from_time, check_out_time, ' +
+      'id, name, address_line_1, city, state, star_rating, check_in_from_time, check_out_time, pet_policy_text, ' +
         'hotel_images!hotel_images_hotel_id_fkey(image_url, is_primary, display_order)'
     )
     .eq('slug', slug)
@@ -190,6 +191,7 @@ export default async function BookingPage({
             initialCheckOut={initialCheckOut}
             initialAdults={initialAdults}
             initialChildren={initialChildren}
+            initialPets={initialPets}
           />
         </main>
       </div>
@@ -252,6 +254,7 @@ export default async function BookingPage({
           initialCheckOut={initialCheckOut}
           initialAdults={initialAdults}
           initialChildren={initialChildren}
+          initialPets={initialPets}
         />
       </main>
     </div>

@@ -2,15 +2,17 @@ import createMiddleware from 'next-intl/middleware';
 import { routing } from './i18n/routing';
 import { NextResponse, type NextRequest } from 'next/server';
 import { isRouteBlocked } from '@/lib/config/features';
+import { ADMIN_PATH, isAdminPath } from '@/lib/config/admin-path';
 import { SESSION_COOKIE } from '@/lib/firebase/auth/constants';
 
 const intlMiddleware = createMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const isAdmin = isAdminPath(pathname);
 
-  // Block routes for disabled features (returns 404)
-  if (isRouteBlocked(pathname)) {
+  // Block routes for disabled features (returns 404); admin pages match without their prefix
+  if (isRouteBlocked(isAdmin ? pathname.slice(ADMIN_PATH.length) : pathname)) {
     return new Response('Not Found', { status: 404 });
   }
 
@@ -19,8 +21,8 @@ export async function middleware(request: NextRequest) {
     return;
   }
 
-  // Admin routes have no locale prefix; app/admin/layout.tsx checks the session and role
-  if (pathname.startsWith('/admin')) {
+  // The admin panel (ADMIN_PATH) has no locale prefix; its layout checks the session and role
+  if (isAdmin) {
     return NextResponse.next();
   }
 
@@ -49,7 +51,6 @@ export const config = {
   matcher: [
     '/',
     '/(en|es|fr)/:path*',
-    '/admin/:path*',
     '/api/:path*',
     '/((?!_next|_vercel|.*\\..*).*)'
   ],

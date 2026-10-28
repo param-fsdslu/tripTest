@@ -19,6 +19,7 @@
 import { useHotelBySlug } from '@/lib/hooks/use-hotels';
 import Image from 'next/image';
 import { ImageGallery } from './ImageGallery';
+import { PanoramaTour } from './PanoramaTour';
 import { RoomComparison } from './RoomComparison';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -93,6 +94,7 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
   );
   const searchAdults = useSearchStore((s) => s.adults);
   const searchChildren = useSearchStore((s) => s.children);
+  const searchPets = useSearchStore((s) => s.pets);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const authVersion = useUIStore((s) => s.authVersion);
   const [activeTab, setActiveTab] = useState('overview');
@@ -110,7 +112,7 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
 
   // Scroll spy: update active tab based on scroll position
   useEffect(() => {
-    const sectionIds = ['overview', 'rooms', 'policies', 'reviews'];
+    const sectionIds = ['overview', 'tour', 'rooms', 'policies', 'reviews'];
     const handleScroll = () => {
       const tabsHeight = tabsRef.current?.offsetHeight || 60;
       const offset = 80 + tabsHeight; // navbar + tabs height
@@ -133,7 +135,7 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
   const lastSavedKey = useRef<string | null>(null);
   const checkInStr = searchCheckIn ? format(searchCheckIn, 'yyyy-MM-dd') : undefined;
   const checkOutStr = searchCheckOut ? format(searchCheckOut, 'yyyy-MM-dd') : undefined;
-  const stay = [checkInStr ?? null, checkOutStr ?? null, searchAdults, searchChildren];
+  const stay = [checkInStr ?? null, checkOutStr ?? null, searchAdults, searchChildren, searchPets];
 
   useEffect(() => {
     setSyncReady(false);
@@ -172,6 +174,7 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
         checkOut: checkOutStr,
         adults: searchAdults,
         children: searchChildren,
+        pets: searchPets,
       }).catch(() => {
         lastSavedKey.current = null;
       });
@@ -269,6 +272,7 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
     if (searchCheckOut) dateParams.set('checkOut', format(searchCheckOut, 'yyyy-MM-dd'));
     if (searchAdults) dateParams.set('adults', String(searchAdults));
     if (searchChildren) dateParams.set('children', String(searchChildren));
+    if (searchPets) dateParams.set('pets', '1');
     const dateSuffix = dateParams.toString() ? `&${dateParams.toString()}` : '';
 
     // No sign-in needed: guests book with their name and mobile number on the review page
@@ -400,6 +404,7 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
           <nav className="flex gap-0 overflow-x-auto scrollbar-hide">
             {[
               { id: 'overview', label: 'Overview' },
+              ...(hotel.hotel_panoramas?.length ? [{ id: 'tour', label: '360° View' }] : []),
               { id: 'rooms', label: `Rooms${hotel.room_types?.length ? ` (${hotel.room_types.length})` : ''}` },
               { id: 'policies', label: 'Property Rules' },
               { id: 'reviews', label: `Reviews${reviewCount ? ` (${reviewCount})` : ''}` },
@@ -469,6 +474,13 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
                 </Card>
               )}
             </div>
+
+            {/* 360° View */}
+            {hotel.hotel_panoramas && hotel.hotel_panoramas.length > 0 && (
+              <div id="tour">
+                <PanoramaTour hotelName={hotel.name} panoramas={hotel.hotel_panoramas} />
+              </div>
+            )}
 
             {/* Rooms Section */}
             <div id="rooms">

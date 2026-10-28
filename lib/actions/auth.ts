@@ -35,7 +35,9 @@ import {
   upsertFederatedUser,
 } from '@/lib/firebase/auth/users'
 import type { AuthUser } from '@/lib/firebase/auth/types'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 import { normalizePhone } from '@/lib/utils/phone'
+import { getAdminRole } from '@/lib/utils/roles'
 import { safeRedirectPath } from '@/lib/utils/safe-redirect'
 import { claimGuestRecords } from '@/lib/services/guest-checkout.service'
 
@@ -73,6 +75,35 @@ export async function signIn(
 
   // Return success with redirect URL for client-side navigation
   return { success: true, redirectTo: safeRedirectPath(redirectTo) }
+}
+
+/**
+ * Admin panel sign-in (ADMIN_PATH/login), email + password only. The role is checked before
+ * the session starts, so a guest account never gets signed in here. On success it goes
+ * straight to the panel.
+ */
+export async function signInAdmin(_prevState: { error?: string } | null, formData: FormData) {
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+
+  let session: { idToken: string; localId: string }
+  try {
+    session = await signInWithPassword(email, password)
+  } catch (err) {
+    return { error: identityErrorMessage(err) }
+  }
+
+  const user = await getAuthUserById(session.localId)
+  if (!user?.email_confirmed_at) {
+    return { error: 'Please confirm your email first. Check your inbox for the verification link.' }
+  }
+  if (!getAdminRole(user)) {
+    return { error: 'This account has no admin access.' }
+  }
+
+  await startSession(session.idToken, session.localId)
+  revalidatePath('/', 'layout')
+  redirect(ADMIN_PATH)
 }
 
 /**
@@ -242,6 +273,14 @@ export async function signOut() {
 
   revalidatePath('/', 'layout')
   redirect('/')
+}
+
+/** Signs out from the admin panel (all sessions) and goes back to the admin sign-in page. */
+export async function signOutAdmin() {
+  await endSession()
+
+  revalidatePath('/', 'layout')
+  redirect(`${ADMIN_PATH}/login`)
 }
 
 /**

@@ -132,16 +132,16 @@ export function Navbar({ transparent = true }: NavbarProps) {
           <Image
             src="/company-logo-only.svg"
             alt="Triplovia"
-            width={32}
-            height={32}
-            className="h-8 w-8"
+            width={40}
+            height={40}
+            className="h-9 w-9 sm:h-10 sm:w-10"
           />
           <Image
             src="/company-logo-text-only.svg"
             alt="Triplovia"
-            width={120}
-            height={28}
-            className={cn("h-6 w-auto hidden sm:block", !solid && "brightness-0 invert")}
+            width={140}
+            height={32}
+            className={cn("h-7 w-auto hidden sm:block", !solid && "brightness-0 invert")}
           />
         </Link>
 
@@ -154,7 +154,7 @@ export function Navbar({ transparent = true }: NavbarProps) {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "relative px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200",
+                  "relative px-3 py-2 text-[15px] font-medium rounded-md transition-colors duration-200",
                   active
                     ? solid
                       ? "text-primary"
@@ -194,14 +194,14 @@ export function Navbar({ transparent = true }: NavbarProps) {
             )}
           >
             {loading ? (
-              <div className="h-8 w-20 bg-white/10 animate-pulse rounded-full" />
+              <div className="h-10 w-24 bg-white/10 animate-pulse rounded-full" />
             ) : user ? (
               <>
                 <Link
                   href="/wishlist"
                   title="My Wishlist"
                   className={cn(
-                    "relative flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200",
+                    "relative flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200",
                     solid
                       ? "text-muted-foreground hover:text-red-500 hover:bg-red-50"
                       : "text-white/75 hover:text-white hover:bg-white/10"
@@ -211,8 +211,8 @@ export function Navbar({ transparent = true }: NavbarProps) {
                 </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
-                    <Avatar className="h-9 w-9 ring-2 ring-gold/40">
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
+                    <Avatar className="h-10 w-10 ring-2 ring-gold/40">
                       <AvatarFallback
                         className="bg-primary text-white text-sm font-semibold"
                         style={{ fontFamily: "var(--font-heading)" }}
@@ -251,7 +251,7 @@ export function Navbar({ transparent = true }: NavbarProps) {
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "rounded-lg font-medium text-sm",
+                    "h-10 rounded-lg px-4 font-medium text-[15px]",
                     solid ? "text-foreground" : "text-white hover:bg-white/10 hover:text-white"
                   )}
                   onClick={() => openAuth({ intent: "login" })}
@@ -261,7 +261,7 @@ export function Navbar({ transparent = true }: NavbarProps) {
                 <Button
                   size="sm"
                   className={cn(
-                    "rounded-lg font-semibold text-sm shadow-none",
+                    "h-10 rounded-lg px-5 font-semibold text-[15px] shadow-none",
                     solid
                       ? "bg-primary text-white hover:bg-primary-hover"
                       : "bg-white text-primary hover:bg-white/90"
@@ -292,7 +292,7 @@ export function Navbar({ transparent = true }: NavbarProps) {
               variant="ghost"
               size="icon"
               className={cn(
-                "md:hidden rounded-full h-9 w-9",
+                "md:hidden rounded-full h-10 w-10",
                 solid ? "text-foreground hover:bg-muted" : "text-white hover:bg-white/15"
               )}
               aria-label="Open menu"
@@ -463,20 +463,20 @@ function TripsButton({ solid, active, signedOut, onSignIn, compact = false, clas
     <>
       <span
         className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-sm transition-colors duration-200",
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm transition-colors duration-200",
           solid
             ? cn("bg-primary text-white group-hover:bg-primary-hover", active && "ring-2 ring-gold ring-offset-1 ring-offset-background")
             : cn("bg-white text-primary group-hover:bg-white/90", active && "ring-2 ring-gold")
         )}
       >
-        <TripsIcon className="h-[21px] w-[21px]" />
+        <TripsIcon className="h-[23px] w-[23px]" />
       </span>
       {!compact && (
         <span className="hidden flex-col text-left leading-tight lg:flex">
-          <span className={cn("font-heading text-sm font-extrabold", solid ? "text-foreground" : "text-white")}>
+          <span className={cn("font-heading text-[15px] font-extrabold", solid ? "text-foreground" : "text-white")}>
             My Trips
           </span>
-          <span className={cn("text-[11px] font-medium", solid ? "text-muted-foreground" : "text-white/75")}>
+          <span className={cn("text-xs font-medium", solid ? "text-muted-foreground" : "text-white/75")}>
             Manage bookings
           </span>
         </span>

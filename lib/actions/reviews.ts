@@ -13,6 +13,7 @@ import { revalidatePath } from 'next/cache'
 import { CreateReviewDto } from '@/lib/types'
 import { emailService } from '@/lib/services/email.service'
 import { isEmailEnabled } from '@/lib/config/features'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 /**
  * Submits a hotel review for a completed, paid booking.
@@ -134,7 +135,7 @@ if ((!isCheckedOut && !isPastStay) || booking.payment_status !== 'paid') {
     // 8. Revalidate paths
     revalidatePath('/bookings')
     revalidatePath('/bookings')
-    revalidatePath('/admin/reviews')
+    revalidatePath(`${ADMIN_PATH}/reviews`)
 
     return {
       success: true,

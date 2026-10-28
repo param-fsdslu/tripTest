@@ -15,8 +15,11 @@ import type {
   DateRange,
   PaginatedResponse,
   PriceRule,
+  DestinationIndex,
+  DestinationPlace,
 } from '@/lib/types';
 import { calculateRoomStayPricing } from '@/lib/utils';
+import { hotelDistrict, loadIndiaLocations } from '@/lib/utils/india-locations';
 
 export class HotelService {
   /**
@@ -237,6 +240,7 @@ export class HotelService {
         `
         *,
         hotel_images(id, image_url, alt_text, is_primary, display_order),
+        hotel_panoramas(id, image_url, title, display_order),
         room_types(
           *,
           room_type_images(id, image_url, alt_text, display_order),
@@ -312,6 +316,7 @@ export class HotelService {
         `
         *,
         hotel_images(id, image_url, alt_text, is_primary, display_order),
+        hotel_panoramas(id, image_url, title, display_order),
         room_types(
           *,
           room_type_images(id, image_url, alt_text, display_order),
@@ -472,36 +477,42 @@ export class HotelService {
   }
 
   /**
-   * Aggregates active hotels by city and returns the top N cities by hotel count.
-   * Used to populate the "Popular Destinations" section on the homepage.
+   * What the destination search suggests: every city with active stays (with how many), most
+   * stays first, and the stays themselves. A city's region is "District, State"; hotels saved
+   * without a district get the one their city belongs to.
    */
-  static async getPopularDestinations(limit: number = 10): Promise<
-    Array<{ city: string; hotel_count: number }>
-  > {
+  static async getDestinationIndex(): Promise<DestinationIndex> {
     const db = await createClient();
 
     const { data, error } = await db
       .from('hotels')
-      .select('city')
+      .select('name, slug, city, district, state')
       .eq('status', 'active');
 
     if (error) {
-      console.error('Error getting popular destinations:', error);
-      // Return empty array instead of throwing
-      return [];
+      console.error('Error getting destinations:', error);
+      return { places: [], stays: [] };
     }
 
-    // Count hotels by city
-    const cityCounts = (data || []).reduce((acc: any, hotel: any) => {
-      acc[hotel.city] = (acc[hotel.city] || 0) + 1;
-      return acc;
-    }, {});
+    const states = await loadIndiaLocations();
+    const places = new Map<string, DestinationPlace>();
+    const count = (kind: DestinationPlace['kind'], name: string | null, region: string) => {
+      if (!name) return;
+      const key = `${kind}:${name.toLowerCase()}`;
+      const place = places.get(key);
+      if (place) place.stays += 1;
+      else places.set(key, { kind, name, region, stays: 1 });
+    };
 
-    // Sort by count and return top N
-    return Object.entries(cityCounts)
-      .map(([city, count]) => ({ city, hotel_count: count as number }))
-      .sort((a, b) => b.hotel_count - a.hotel_count)
-      .slice(0, limit);
+    const stays = (data || []).map((hotel: any) => {
+      count('city', hotel.city, [hotelDistrict(states, hotel), hotel.state].filter(Boolean).join(', '));
+      return { name: hotel.name, slug: hotel.slug, region: [hotel.city, hotel.state].filter(Boolean).join(', ') };
+    });
+
+    return {
+      places: [...places.values()].sort((a, b) => b.stays - a.stays || a.name.localeCompare(b.name)),
+      stays: stays.sort((a, b) => a.name.localeCompare(b.name)),
+    };
   }
 
   /**

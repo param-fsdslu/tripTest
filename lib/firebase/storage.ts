@@ -3,8 +3,14 @@
  * room-images, boat-images, trip-images, blog-images, review-images, profile-images) are
  * top-level folders in the project's default bucket; storage.rules makes them publicly
  * readable and closed to direct client writes, so uploads go through server code.
+ *
+ * With the BUNNY_STORAGE_* env set (lib/bunny/config.ts), new uploads go to Bunny Storage and
+ * are served from its CDN instead, under the same folder/path layout. Removal tries both, so
+ * images uploaded before the switch are cleaned up too.
  */
 import { adminBucket, storageBucketName } from '@/lib/firebase/admin'
+import { bunnyStorageConfig } from '@/lib/bunny/config'
+import { bunnyPublicUrl, bunnyRemove, bunnyUpload } from '@/lib/bunny/storage'
 
 type UploadBody = Blob | ArrayBuffer | ArrayBufferView | Buffer | string
 
@@ -75,6 +81,12 @@ function bucketApi(bucket: string) {
         CONTENT_TYPES[extension] ||
         'application/octet-stream'
       try {
+        const bunny = bunnyStorageConfig()
+        if (bunny) {
+          await bunnyUpload(bunny, name, await toBuffer(body))
+          return { data: { id: name, path, fullPath: name }, error: null }
+        }
+
         await adminBucket()
           .file(name)
           .save(await toBuffer(body), {
@@ -91,13 +103,25 @@ function bucketApi(bucket: string) {
     },
 
     getPublicUrl(path: string): { data: { publicUrl: string } } {
-      return { data: { publicUrl: publicUrlFor(objectName(path)) } }
+      const bunny = bunnyStorageConfig()
+      const name = objectName(path)
+      return { data: { publicUrl: bunny ? bunnyPublicUrl(bunny, name) : publicUrlFor(name) } }
     },
 
     async remove(
       paths: string[]
     ): Promise<{ data: { name: string }[]; error: null } | { data: null; error: StorageError }> {
       try {
+        const bunny = bunnyStorageConfig()
+        if (bunny) {
+          await Promise.all(paths.map((p) => bunnyRemove(bunny, objectName(p))))
+          // Older uploads still live in Firebase Storage: best effort there
+          await Promise.allSettled(
+            paths.map((p) => adminBucket().file(objectName(p)).delete({ ignoreNotFound: true }))
+          )
+          return { data: paths.map((name) => ({ name })), error: null }
+        }
+
         await Promise.all(paths.map((p) => adminBucket().file(objectName(p)).delete({ ignoreNotFound: true })))
         return { data: paths.map((name) => ({ name })), error: null }
       } catch (err) {

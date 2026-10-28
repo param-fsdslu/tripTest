@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select'
 import { createBoat, updateBoat } from '@/lib/actions/boat-admin'
 import { Loader2 } from 'lucide-react'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 interface BoatFormProps {
   boat?: any
@@ -73,7 +74,7 @@ export function BoatForm({ boat, isEdit = false }: BoatFormProps) {
         : await createBoat(boatData)
 
       if (result.success) {
-        router.push('/admin/boats')
+        router.push(`${ADMIN_PATH}/boats`)
         router.refresh()
       } else {
         alert(result.error || 'Failed to save boat')
@@ -330,7 +331,7 @@ export function BoatForm({ boat, isEdit = false }: BoatFormProps) {
         <Button
           type="button"
           variant="outline"
-          onClick={() => router.push('/admin/boats')}
+          onClick={() => router.push(`${ADMIN_PATH}/boats`)}
           disabled={isSubmitting}
         >
           Cancel

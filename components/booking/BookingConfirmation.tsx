@@ -510,6 +510,7 @@ export function BookingConfirmation({ bookingReference }: BookingConfirmationPro
                         {booking.num_adults} {booking.num_adults === 1 ? 'Adult' : 'Adults'}
                         {booking.num_children > 0 &&
                           `, ${booking.num_children} ${booking.num_children === 1 ? 'Child' : 'Children'}`}
+                        {booking.with_pets && ', with pets'}
                       </p>
                     </div>
                   </div>

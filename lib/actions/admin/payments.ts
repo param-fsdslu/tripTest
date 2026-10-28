@@ -4,8 +4,10 @@ import { createClient } from '@/lib/db/server'
 import { requireAdmin, requireSuperAdmin, getAdminHotelAccess } from '@/lib/utils/admin'
 import { revalidatePath } from 'next/cache'
 import { razorpayInstance } from '@/lib/razorpay/config'
+import { razorpayErrorMessage } from '@/lib/razorpay/errors'
 import { emailService } from '@/lib/services/email.service'
 import { logger } from '@/lib/utils/logger'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 /**
  * Get all payments with filters
@@ -407,13 +409,14 @@ export async function approveRefundRequest(refundTransactionId: string, override
         amountPaise: refundResponse.amount,
       })
     } catch (razorpayError: any) {
+      const gatewayError = razorpayErrorMessage(razorpayError)
       // Roll back to pending_approval so admin can retry
       await db
         .from('refund_transactions')
-        .update({ status: 'pending_approval', error_message: razorpayError.message })
+        .update({ status: 'pending_approval', error_message: gatewayError })
         .eq('id', refundTransactionId)
-      logger.error('admin/approveRefund', 'Razorpay refund call failed', razorpayError)
-      return { success: false, error: razorpayError.message || 'Razorpay refund call failed' }
+      logger.error('admin/approveRefund', 'Razorpay refund call failed', razorpayError, { gatewayError })
+      return { success: false, error: `Razorpay refused the refund: ${gatewayError}` }
     }
 
     const newPaymentStatus = finalIsFullRefund ? 'refunded' : 'partially_refunded'
@@ -513,8 +516,8 @@ export async function approveRefundRequest(refundTransactionId: string, override
       logger.error('admin/approveRefund', 'Failed to send refund approval email', emailError)
     }
 
-    revalidatePath('/admin/refunds')
-    revalidatePath('/admin/bookings')
+    revalidatePath(`${ADMIN_PATH}/refunds`)
+    revalidatePath(`${ADMIN_PATH}/bookings`)
 
     logger.always('admin/approveRefund', 'Approve complete', { refundId: refundResponse.id })
     return { success: true, refundId: refundResponse.id }
@@ -660,8 +663,8 @@ export async function rejectRefundRequest(refundTransactionId: string, reason?: 
       }
     }
 
-    revalidatePath('/admin/refunds')
-    revalidatePath('/admin/bookings')
+    revalidatePath(`${ADMIN_PATH}/refunds`)
+    revalidatePath(`${ADMIN_PATH}/bookings`)
 
     logger.always('admin/rejectRefund', 'Reject complete', { refundTransactionId })
     return { success: true }
@@ -693,8 +696,8 @@ export async function updatePaymentStatus(
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/payments')
-    revalidatePath('/admin/bookings')
+    revalidatePath(`${ADMIN_PATH}/payments`)
+    revalidatePath(`${ADMIN_PATH}/bookings`)
 
     return {
       success: true,

@@ -2,8 +2,9 @@
 
 /**
  * HotelSearchBox — the detailed hotel search in the homepage hero and on /hotels (MakeMyTrip-style tiles):
- * destination, check-in / check-out (with the number of nights), rooms & guests and price
- * per night, plus stay-type chips. Dates and guests live in useSearchStore; price and stay
+ * destination (searchable, DestinationPicker), check-in / check-out (with the number of nights), rooms & guests (plus a
+ * travelling-with-pets checkbox, `pets=1` in the URL) and price per night, plus stay-type chips.
+ * Dates and guests live in useSearchStore; price and stay
  * type only go into the results URL (minPrice/maxPrice,
  * propertyType), which /hotels and HotelFilters already read.
  * On /hotels it starts from the URL (`initial`) and keeps the sidebar filters when searching
@@ -27,6 +28,7 @@ import {
   Info,
   MapPin,
   Minus,
+  PawPrint,
   Plus,
   Search,
   TreePalm,
@@ -36,11 +38,14 @@ import {
 import { useShallow } from 'zustand/react/shallow'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn, getMaxBookableDate } from '@/lib/utils'
 import { useSearchStore } from '@/lib/stores/use-search-store'
+import { DestinationPicker, type Destination } from './DestinationPicker'
 
-const DESTINATION = { name: 'Honnavar', region: 'Uttara Kannada, Karnataka' }
+/** Where a new search starts */
+const DEFAULT_DESTINATION: Destination = { name: 'Honnavar', region: 'Uttara Kannada, Karnataka' }
 
 const PRICE_RANGES = [
   { value: 'any', label: 'Any price', min: undefined, max: undefined },
@@ -220,6 +225,7 @@ export interface HotelSearchBoxProps {
     adults?: string
     children?: string
     rooms?: string
+    pets?: string
     minPrice?: string
     maxPrice?: string
     propertyType?: string
@@ -232,27 +238,37 @@ export interface HotelSearchBoxProps {
 
 export function HotelSearchBox({ initial, keepFilters = false, compact = false }: HotelSearchBoxProps = {}) {
   const router = useRouter()
-  const { checkIn, checkOut, adults, children, rooms, isGuestOpen } = useSearchStore(
+  const { checkIn, checkOut, adults, children, rooms, pets, isGuestOpen } = useSearchStore(
     useShallow((s) => ({
       checkIn: s.checkIn,
       checkOut: s.checkOut,
       adults: s.adults,
       children: s.children,
       rooms: s.rooms,
+      pets: s.pets,
       isGuestOpen: s.isGuestOpen,
     }))
   )
-  const { setDateRange, setAdults, setChildren, setRooms, setIsGuestOpen, hydrateFromParams } = useSearchStore(
+  const { setDateRange, setAdults, setChildren, setRooms, setPets, setIsGuestOpen, hydrateFromParams } = useSearchStore(
     useShallow((s) => ({
       hydrateFromParams: s.hydrateFromParams,
       setDateRange: s.setDateRange,
       setAdults: s.setAdults,
       setChildren: s.setChildren,
       setRooms: s.setRooms,
+      setPets: s.setPets,
       setIsGuestOpen: s.setIsGuestOpen,
     }))
   )
 
+  const [destination, setDestination] = useState<Destination>(() =>
+    initial?.location ? { name: initial.location, region: '' } : DEFAULT_DESTINATION
+  )
+  // The /hotels box follows the URL when a new search changes it
+  const initialLocation = initial?.location
+  useEffect(() => {
+    if (initialLocation) setDestination((d) => (d.name === initialLocation ? d : { name: initialLocation, region: '' }))
+  }, [initialLocation])
   const [datesOpen, setDatesOpen] = useState(false)
   const [priceOpen, setPriceOpen] = useState(false)
   const [dateError, setDateError] = useState(false)
@@ -288,7 +304,7 @@ export function HotelSearchBox({ initial, keepFilters = false, compact = false }
   const guests = adults + children
   const guestBreakdown = `${adults} ${plural(adults, 'adult')} · ${
     children > 0 ? `${children} ${plural(children, 'child', 'children')}` : 'no children'
-  }`
+  }${pets ? ' · pets' : ''}`
   // Every room needs at least one adult
   const changeAdults = (value: number) => {
     setAdults(value)
@@ -320,12 +336,13 @@ export function HotelSearchBox({ initial, keepFilters = false, compact = false }
     const params = new URLSearchParams(keepFilters ? window.location.search : '')
     const put = (key: string, value: string | number | undefined) =>
       value === undefined || value === '' ? params.delete(key) : params.set(key, String(value))
-    put('location', DESTINATION.name)
+    put('location', destination.name)
     put('checkIn', format(checkIn, 'yyyy-MM-dd'))
     put('checkOut', format(checkOut, 'yyyy-MM-dd'))
     put('adults', adults)
     put('children', children || undefined)
     put('rooms', rooms)
+    put('pets', pets ? 1 : undefined)
     if (!compact) {
       put('minPrice', price.min)
       put('maxPrice', price.max)
@@ -344,32 +361,17 @@ export function HotelSearchBox({ initial, keepFilters = false, compact = false }
             compact ? 'lg:grid-cols-[0.9fr_1.6fr_1.15fr]' : 'lg:grid-cols-[0.95fr_1.7fr_1.25fr_0.95fr]'
           )}
         >
-          {/* Destination */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button type="button" className={cn(fieldClass, 'col-span-2 lg:col-span-1')}>
-                <Tile icon={MapPin} label="Destination" sub={DESTINATION.region}>
-                  <span className="truncate text-[19px] font-extrabold leading-none">{DESTINATION.name}</span>
-                </Tile>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-72 p-2">
-              <p className="px-2 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Destinations
-              </p>
-              <div className="flex items-center gap-3 rounded-lg bg-mint/60 px-2 py-2">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-card text-primary">
-                  <MapPin className="h-4 w-4" />
-                </span>
-                <span className="flex-1">
-                  <span className="block text-sm font-semibold text-foreground">{DESTINATION.name}</span>
-                  <span className="block text-xs text-muted-foreground">{DESTINATION.region}</span>
-                </span>
-                <Check className="h-4 w-4 text-primary" />
-              </div>
-              <p className="px-2 pb-1 pt-2.5 text-xs text-muted-foreground">More coastal destinations coming soon.</p>
-            </PopoverContent>
-          </Popover>
+          {/* Destination: searchable (places with stays, and stays by name) */}
+          <DestinationPicker
+            value={destination}
+            onChange={setDestination}
+            onPickStay={(slug) => router.push(`/hotels/${slug}`)}
+            className={cn(fieldClass, 'col-span-2 lg:col-span-1')}
+          >
+            <Tile icon={MapPin} label="Destination" sub={destination.region || 'Search a city or stay'}>
+              <span className="truncate text-[19px] font-extrabold leading-none">{destination.name}</span>
+            </Tile>
+          </DestinationPicker>
 
           {/* Check-in / check-out */}
           <Popover open={datesOpen} onOpenChange={setDatesOpen}>
@@ -469,6 +471,23 @@ export function HotelSearchBox({ initial, keepFilters = false, compact = false }
                   min={1}
                   max={Math.min(8, adults)}
                 />
+                <label htmlFor="guests-pets" className="flex cursor-pointer items-center justify-between gap-3 py-2.5">
+                  <span className="flex items-center gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mint text-primary">
+                      <PawPrint className="h-3.5 w-3.5" />
+                    </span>
+                    <span>
+                      <span className="block text-[13px] font-semibold text-foreground">Travelling with pets?</span>
+                      <span className="block text-[11px] text-muted-foreground">We&apos;ll let the property know</span>
+                    </span>
+                  </span>
+                  <Checkbox
+                    id="guests-pets"
+                    checked={pets}
+                    onCheckedChange={(value) => setPets(value === true)}
+                    className="mr-2 h-5 w-5"
+                  />
+                </label>
               </div>
               <div className="mx-4 mb-3 rounded-lg bg-mint/60 px-3 py-2.5">
                 <p className="flex items-center gap-1.5 text-[11.5px] font-semibold text-secondary">
@@ -477,6 +496,7 @@ export function HotelSearchBox({ initial, keepFilters = false, compact = false }
                 </p>
                 <ul className="mt-1.5 list-disc space-y-1 pl-5 text-[11px] leading-relaxed text-muted-foreground marker:text-primary/60">
                   <li>Guests aged 12 and above count as adults.</li>
+                  <li>Pet rules (size, number, extra fees) vary by stay. Check the property&apos;s pet policy.</li>
                   <li>Extra beds and child policies vary by stay. Check the property rules before booking.</li>
                   <li>
                     Booking more than 8 rooms or a large group? Call{' '}

@@ -27,6 +27,7 @@ import { deleteBlog } from '@/lib/actions/blogs'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { BlogStatus } from '@/lib/actions/blogs'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 interface Blog {
   id: string
@@ -114,7 +115,7 @@ export function BlogsTable({ blogs }: BlogsTableProps) {
         <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
         <h3 className="text-lg font-medium text-foreground mb-2">No blog posts yet</h3>
         <p className="text-muted-foreground mb-4">Create your first blog post to get started.</p>
-        <Link href="/admin/blogs/new">
+        <Link href={`${ADMIN_PATH}/blogs/new`}>
           <Button>
             <Plus className="h-4 w-4 mr-2" />
             Create Blog Post
@@ -193,7 +194,7 @@ export function BlogsTable({ blogs }: BlogsTableProps) {
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem asChild>
-                          <Link href={`/admin/blogs/${blog.id}/edit`}>
+                          <Link href={`${ADMIN_PATH}/blogs/${blog.id}/edit`}>
                             <Edit className="h-4 w-4 mr-2" />
                             Edit Blog
                           </Link>

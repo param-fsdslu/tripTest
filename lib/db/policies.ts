@@ -136,6 +136,7 @@ export const POLICIES: Record<string, Policy[]> = {
     { command: 'select', using: (row) => row.status === 'active' },
   ],
   hotel_images: hotelChildPolicies('hotel_id'),
+  hotel_panoramas: hotelChildPolicies('hotel_id'),
   hotel_amenities: hotelChildPolicies('hotel_id'),
   room_types: [
     { command: 'all', using: superAdminOnly },

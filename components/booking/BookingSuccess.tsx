@@ -94,7 +94,13 @@ export function BookingSuccess({ booking, group }: { booking: any; group: any[] 
   const totalPaid = group.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0)
   const adults = Number(booking.num_adults) || 0
   const children = Number(booking.num_children) || 0
-  const guestsLabel = [plural(adults, 'adult', 'adults'), children ? plural(children, 'child', 'children') : ''].filter(Boolean).join(', ')
+  const guestsLabel = [
+    plural(adults, 'adult', 'adults'),
+    children ? plural(children, 'child', 'children') : '',
+    booking.with_pets ? 'with pets' : '',
+  ]
+    .filter(Boolean)
+    .join(', ')
   const deadline = freeCancellationDeadline(booking.check_in_date, hotel.check_in_from_time)
   const invoiceable = group.filter(isInvoiceable)
   const manageHref = isGuestCheckout ? '/auth/login?redirect=/bookings' : `/bookings/${booking.booking_reference}`

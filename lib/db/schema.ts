@@ -322,6 +322,8 @@ export const TABLES: Record<string, TableDef> = {
       invoice_date: { type: 'date' },
       /** The guest agreed to booking updates on WhatsApp (checkbox on the review page) */
       whatsapp_opt_in: { type: 'bool', default: false },
+      /** Travelling with pets (Rooms & Guests in the search box, or the review page) */
+      with_pets: { type: 'bool', default: false },
       /** When the booking-confirmed email/WhatsApp went out; set once by notifyBookingConfirmed */
       confirmation_sent_at: { type: 'timestamptz' },
     },
@@ -470,6 +472,24 @@ export const TABLES: Record<string, TableDef> = {
       { name: 'hotel_nearby_attractions_hotel_id_fkey', column: 'hotel_id', refTable: 'hotels', refColumn: 'id', onDelete: 'cascade' },
     ],
   },
+  /** 360° photos (equirectangular, 2:1) for the hotel page's viewer; kept apart from the photo gallery */
+  hotel_panoramas: {
+    pk: 'id',
+    parent: { table: 'hotels', column: 'hotel_id' },
+    columns: {
+      id: { type: 'uuid', default: { fn: 'uuid' } },
+      hotel_id: { type: 'uuid' },
+      image_url: { type: 'text' },
+      storage_path: { type: 'text' },
+      title: { type: 'text' },
+      display_order: { type: 'int', default: 0 },
+      created_at: { type: 'timestamptz', default: { fn: 'now' } },
+    },
+    unique: [],
+    fks: [
+      { name: 'hotel_panoramas_hotel_id_fkey', column: 'hotel_id', refTable: 'hotels', refColumn: 'id', onDelete: 'cascade' },
+    ],
+  },
   hotel_payment_methods: {
     pk: 'id',
     parent: { table: 'hotels', column: 'hotel_id' },
@@ -517,6 +537,7 @@ export const TABLES: Record<string, TableDef> = {
       address_line_1: { type: 'text' },
       address_line_2: { type: 'text' },
       city: { type: 'text' },
+      district: { type: 'text' },
       state: { type: 'text' },
       country: { type: 'text' },
       postal_code: { type: 'text' },
@@ -985,6 +1006,7 @@ export const TABLES: Record<string, TableDef> = {
       check_out_date: { type: 'date' },
       num_adults: { type: 'int', default: 1 },
       num_children: { type: 'int', default: 0 },
+      with_pets: { type: 'bool', default: false },
       created_at: { type: 'timestamptz', default: { fn: 'now' } },
       updated_at: { type: 'timestamptz', default: { fn: 'now' } },
     },

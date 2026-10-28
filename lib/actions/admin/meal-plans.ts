@@ -4,6 +4,7 @@ import { createClient } from '@/lib/db/server'
 import { requireAdmin } from '@/lib/utils/admin'
 import { revalidatePath } from 'next/cache'
 import { verifyHotelAccess, requireHotelAdminPermission } from './_helpers'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 /**
  * Get meal plans for a hotel
@@ -54,8 +55,8 @@ export async function createMealPlan(data: {
 
     if (error) throw new Error(error.message)
 
-    revalidatePath('/admin/hotels')
-    revalidatePath(`/admin/hotels/${data.hotel_id}`)
+    revalidatePath(`${ADMIN_PATH}/hotels`)
+    revalidatePath(`${ADMIN_PATH}/hotels/${data.hotel_id}`)
 
     return { success: true, mealPlan }
   } catch (error: any) {
@@ -102,8 +103,8 @@ export async function updateMealPlan(
 
     if (error) throw new Error(error.message)
 
-    revalidatePath('/admin/hotels')
-    revalidatePath(`/admin/hotels/${existing.hotel_id}`)
+    revalidatePath(`${ADMIN_PATH}/hotels`)
+    revalidatePath(`${ADMIN_PATH}/hotels/${existing.hotel_id}`)
 
     return { success: true, mealPlan }
   } catch (error: any) {
@@ -148,8 +149,8 @@ export async function deleteMealPlan(mealPlanId: string) {
 
     if (error) throw new Error(error.message)
 
-    revalidatePath('/admin/hotels')
-    revalidatePath(`/admin/hotels/${existing.hotel_id}`)
+    revalidatePath(`${ADMIN_PATH}/hotels`)
+    revalidatePath(`${ADMIN_PATH}/hotels/${existing.hotel_id}`)
 
     return { success: true }
   } catch (error: any) {

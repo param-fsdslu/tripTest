@@ -91,7 +91,7 @@ app/
 │   ├── payment/                  # Payment success
 │   └── settings/                 # User settings
 │
-├── admin/                        # Admin panel (no locale prefix)
+├── console-b69ece1a1dc2/         # Admin panel (no locale prefix); URL = ADMIN_PATH (lib/config/admin-path.ts)
 │   ├── analytics/                #   Dashboard analytics
 │   ├── blogs/                    #   Blog management (Tiptap editor)
 │   ├── boats/                    #   Boat CRUD
@@ -243,7 +243,7 @@ All requests pass through `middleware.ts` in this order:
 
 1. **Feature flag check** - disabled features return 404
 2. **API passthrough** - `/api/*` routes skip i18n/auth
-3. **Admin routes** - `/admin/*` gets session refresh, skips i18n
+3. **Admin routes** - `ADMIN_PATH` (`/console-b69ece1a1dc2`, `lib/config/admin-path.ts`) skips i18n; `/admin` is a 404
 4. **Auth session refresh** - Supabase cookie refresh via `updateSession()`
 5. **Protected route guards** - redirect unauthenticated users to login
 6. **Auth route guards** - redirect authenticated users away from login/signup

@@ -14,6 +14,7 @@
 import { createClient } from '@/lib/db/server'
 import { requireSuperAdmin } from '@/lib/utils/admin'
 import { revalidatePath } from 'next/cache'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 /** Blog lifecycle status. Once archived, a blog is hidden but not deleted. */
 export type BlogStatus = 'draft' | 'published' | 'archived'
@@ -230,7 +231,7 @@ export async function createBlog(data: {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/blogs')
+    revalidatePath(`${ADMIN_PATH}/blogs`)
     revalidatePath('/blog')
 
     return {
@@ -301,7 +302,7 @@ export async function updateBlog(
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/blogs')
+    revalidatePath(`${ADMIN_PATH}/blogs`)
     revalidatePath('/blog')
     revalidatePath(`/blog/${blog.slug}`)
 
@@ -350,7 +351,7 @@ export async function deleteBlog(id: string) {
 
     // TODO: Delete images from storage bucket
 
-    revalidatePath('/admin/blogs')
+    revalidatePath(`${ADMIN_PATH}/blogs`)
     revalidatePath('/blog')
 
     return {

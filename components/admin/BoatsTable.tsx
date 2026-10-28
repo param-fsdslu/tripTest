@@ -14,6 +14,7 @@ import { Eye, ChevronLeft, ChevronRight, Edit, Trash2, Ship } from 'lucide-react
 import { updateBoatStatus, deleteBoat } from '@/lib/actions/boat-admin'
 import { ExportButtons } from './ExportButtons'
 import type { ExportColumn } from '@/lib/utils/export'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 interface BoatsTableProps {
   boats: any[]
@@ -136,7 +137,7 @@ export function BoatsTable({ boats, pagination }: BoatsTableProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => router.push(`/admin/boats/${boat.id}`)} title="Edit"><Edit className="h-4 w-4" /></Button>
+                      <Button size="sm" variant="outline" onClick={() => router.push(`${ADMIN_PATH}/boats/${boat.id}`)} title="Edit"><Edit className="h-4 w-4" /></Button>
                       <Button size="sm" variant="outline" onClick={() => router.push(`/boats/${boat.slug}`)} title="View"><Eye className="h-4 w-4" /></Button>
                       <Button size="sm" variant="destructive" onClick={() => handleDelete(boat.id, boat.name)} disabled={deleting === boat.id} title="Delete"><Trash2 className="h-4 w-4" /></Button>
                     </div>

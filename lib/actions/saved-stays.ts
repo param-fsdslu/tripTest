@@ -20,6 +20,7 @@ export interface SavedStay {
   checkOut?: string
   adults: number
   children: number
+  pets: boolean
 }
 
 export interface SavedStayInput {
@@ -30,6 +31,7 @@ export interface SavedStayInput {
   checkOut?: string
   adults?: number
   children?: number
+  pets?: boolean
 }
 
 export interface SavedStaySummary extends SavedStay {
@@ -79,6 +81,7 @@ function toSavedStay(row: any): SavedStay {
     checkOut: row.check_out_date ?? undefined,
     adults: row.num_adults ?? 1,
     children: row.num_children ?? 0,
+    pets: row.with_pets === true,
   }
 }
 
@@ -97,7 +100,7 @@ export async function getSavedStay(hotelId: string): Promise<SavedStay | null> {
 
   const { data } = await db
     .from('saved_stays')
-    .select('rooms, check_in_date, check_out_date, num_adults, num_children')
+    .select('rooms, check_in_date, check_out_date, num_adults, num_children, with_pets')
     .eq('user_id', user.id)
     .eq('hotel_id', hotelId)
     .maybeSingle()
@@ -136,6 +139,7 @@ export async function saveStay(input: SavedStayInput): Promise<Result> {
     check_out_date: checkIn && checkOut && checkOut > checkIn ? checkOut : null,
     num_adults: cleanInt(input.adults, 1, 30, 1),
     num_children: cleanInt(input.children, 0, 20, 0),
+    with_pets: input.pets === true,
   }
 
   const update = () => db.from('saved_stays').update(row).eq('user_id', user.id).eq('hotel_id', hotelId)
@@ -180,7 +184,7 @@ export async function getSavedStays(): Promise<SavedStaySummary[]> {
   const { data: stays, error } = await db
     .from('saved_stays')
     .select(
-      'id, hotel_id, rooms, check_in_date, check_out_date, num_adults, num_children, updated_at, ' +
+      'id, hotel_id, rooms, check_in_date, check_out_date, num_adults, num_children, with_pets, updated_at, ' +
         'hotel:hotels(id, name, slug, city, status, hotel_images!hotel_images_hotel_id_fkey(image_url, is_primary, display_order))'
     )
     .eq('user_id', user.id)

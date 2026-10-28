@@ -26,7 +26,7 @@ export interface BookingSummary {
   /** "Deluxe Double Room × 1, Family Suite × 1" */
   roomsLabel: string
   roomCount: number
-  /** "2 adults, 1 child" */
+  /** "2 adults, 1 child" (plus ", with pets" when travelling with pets) */
   guestsLabel: string
   totalPaid: number
   /** "₹1.07" */
@@ -81,7 +81,13 @@ export function buildBookingSummary(group: any[], now: Date = new Date()): Booki
     nights: Number(first.num_nights) || 0,
     roomsLabel: group.map((b) => `${b.room_type?.name ?? 'Room'} × ${b.num_rooms || 1}`).join(', '),
     roomCount: group.reduce((sum, b) => sum + (Number(b.num_rooms) || 1), 0),
-    guestsLabel: [plural(adults, 'adult', 'adults'), children ? plural(children, 'child', 'children') : ''].filter(Boolean).join(', '),
+    guestsLabel: [
+      plural(adults, 'adult', 'adults'),
+      children ? plural(children, 'child', 'children') : '',
+      group.some((b) => b.with_pets) ? 'with pets' : '',
+    ]
+      .filter(Boolean)
+      .join(', '),
     totalPaid,
     totalPaidLabel: formatRupees(totalPaid),
     paymentId: first.razorpay_payment_id || null,

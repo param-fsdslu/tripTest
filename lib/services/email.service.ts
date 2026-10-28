@@ -14,6 +14,7 @@
  *   Text: #243A38 · Background: #F8F6F0
  */
 import { Resend } from 'resend'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 import { logger } from '@/lib/utils/logger'
 import type { BookingSummary } from '@/lib/utils/booking-summary'
 
@@ -666,7 +667,7 @@ export const emailService = {
           ` : ''}
 
           <div style="text-align: center; margin: 24px 0;">
-            <a href="${BRAND.appUrl}/admin/bookings/${params.bookingId}" class="button">View in Admin Panel</a>
+            <a href="${BRAND.appUrl}${ADMIN_PATH}/bookings/${params.bookingId}" class="button">View in Admin Panel</a>
           </div>
 
           <p style="color: #6b7280; font-size: 13px;">Please ensure the room is prepared for the guest's arrival. If you have any questions, contact the ${BRAND.name} team.</p>

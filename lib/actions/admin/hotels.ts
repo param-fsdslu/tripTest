@@ -4,6 +4,7 @@ import { createClient } from '@/lib/db/server'
 import { requireAdmin, getAdminHotelAccess } from '@/lib/utils/admin'
 import { revalidatePath } from 'next/cache'
 import { requireHotelAdminPermission, verifyHotelAccess } from './_helpers'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 /**
  * Get all hotels with pagination
@@ -96,6 +97,7 @@ export async function getHotelById(hotelId: string) {
           alt_text,
           display_order
         ),
+        hotel_panoramas(id, image_url, title, display_order),
         hotel_amenities(
           id,
           amenity:amenities(
@@ -176,7 +178,7 @@ export async function createHotel(hotelData: any) {
       }
     }
 
-    revalidatePath('/admin/hotels')
+    revalidatePath(`${ADMIN_PATH}/hotels`)
     revalidatePath('/hotels')
 
     return {
@@ -220,7 +222,7 @@ export async function updateHotel(hotelId: string, hotelData: any) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/hotels')
+    revalidatePath(`${ADMIN_PATH}/hotels`)
     revalidatePath('/hotels')
     revalidatePath(`/hotels/${hotel.slug}`)
 
@@ -281,7 +283,7 @@ export async function deleteHotel(hotelId: string) {
         throw new Error(archiveError.message)
       }
 
-      revalidatePath('/admin/hotels')
+      revalidatePath(`${ADMIN_PATH}/hotels`)
       revalidatePath('/hotels')
 
       return {
@@ -299,7 +301,7 @@ export async function deleteHotel(hotelId: string) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/hotels')
+    revalidatePath(`${ADMIN_PATH}/hotels`)
     revalidatePath('/hotels')
 
     return {
@@ -337,7 +339,7 @@ export async function updateHotelStatus(
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/hotels')
+    revalidatePath(`${ADMIN_PATH}/hotels`)
     revalidatePath('/hotels')
 
     return {

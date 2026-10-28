@@ -4,6 +4,7 @@ import { createClient } from '@/lib/db/server'
 import { requireAdmin, getAdminHotelAccess } from '@/lib/utils/admin'
 import { revalidatePath } from 'next/cache'
 import { STORAGE_BUCKETS, extractStoragePath } from '@/lib/utils/storage'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 // ============================================
 // Boat CRUD
@@ -145,7 +146,7 @@ export async function createBoat(boatData: any) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/boats')
+    revalidatePath(`${ADMIN_PATH}/boats`)
     revalidatePath('/boats')
 
     return {
@@ -177,7 +178,7 @@ export async function updateBoat(boatId: string, boatData: any) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/boats')
+    revalidatePath(`${ADMIN_PATH}/boats`)
     revalidatePath('/boats')
     revalidatePath(`/boats/${boat.slug}`)
 
@@ -220,7 +221,7 @@ export async function deleteBoat(boatId: string) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/boats')
+    revalidatePath(`${ADMIN_PATH}/boats`)
     revalidatePath('/boats')
 
     return {
@@ -254,7 +255,7 @@ export async function updateBoatStatus(
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/boats')
+    revalidatePath(`${ADMIN_PATH}/boats`)
     revalidatePath('/boats')
 
     return {
@@ -336,7 +337,7 @@ export async function createTripType(tripTypeData: any) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/boats')
+    revalidatePath(`${ADMIN_PATH}/boats`)
     revalidatePath('/boats')
 
     return {
@@ -368,7 +369,7 @@ export async function updateTripType(tripTypeId: string, tripTypeData: any) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/boats')
+    revalidatePath(`${ADMIN_PATH}/boats`)
     revalidatePath('/boats')
 
     return {
@@ -410,7 +411,7 @@ export async function deleteTripType(tripTypeId: string) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/boats')
+    revalidatePath(`${ADMIN_PATH}/boats`)
     revalidatePath('/boats')
 
     return {
@@ -450,7 +451,7 @@ export async function createTimeSlot(data: {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/boats')
+    revalidatePath(`${ADMIN_PATH}/boats`)
 
     return {
       success: true,
@@ -481,7 +482,7 @@ export async function updateTimeSlot(slotId: string, data: any) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/boats')
+    revalidatePath(`${ADMIN_PATH}/boats`)
 
     return {
       success: true,
@@ -510,7 +511,7 @@ export async function deleteTimeSlot(slotId: string) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/boats')
+    revalidatePath(`${ADMIN_PATH}/boats`)
 
     return {
       success: true,
@@ -576,7 +577,7 @@ export async function uploadBoatImage(boatId: string, formData: FormData) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/boats')
+    revalidatePath(`${ADMIN_PATH}/boats`)
     revalidatePath('/boats')
 
     return {
@@ -621,7 +622,7 @@ export async function deleteBoatImage(imageId: string) {
       }
     }
 
-    revalidatePath('/admin/boats')
+    revalidatePath(`${ADMIN_PATH}/boats`)
     revalidatePath('/boats')
 
     return {
@@ -658,7 +659,7 @@ export async function addBoatAmenity(boatId: string, amenityId: string) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/boats')
+    revalidatePath(`${ADMIN_PATH}/boats`)
     revalidatePath('/boats')
 
     return {
@@ -688,7 +689,7 @@ export async function removeBoatAmenity(boatAmenityId: string) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/boats')
+    revalidatePath(`${ADMIN_PATH}/boats`)
     revalidatePath('/boats')
 
     return {
@@ -840,7 +841,7 @@ export async function updateBoatBookingStatus(
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/boat-bookings')
+    revalidatePath(`${ADMIN_PATH}/boat-bookings`)
 
     return {
       success: true,

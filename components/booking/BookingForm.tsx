@@ -29,6 +29,7 @@ import {
   gstDetailsForRequest,
 } from '@/components/booking/review/GstDetailsFields'
 import { WhatsAppOptIn } from '@/components/booking/review/WhatsAppOptIn'
+import { PetsOptIn } from '@/components/booking/review/PetsOptIn'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   User,
@@ -132,6 +133,7 @@ interface Hotel {
   check_out_time?: string
   star_rating?: number | null
   image_url?: string | null
+  pet_policy_text?: string | null
 }
 
 interface BookingFormProps {
@@ -148,9 +150,11 @@ interface BookingFormProps {
   initialCheckOut?: Date
   initialAdults?: number
   initialChildren?: number
+  /** Travelling with pets, from the search box */
+  initialPets?: boolean
 }
 
-export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], userId, userEmail, userName, userPhone, initialCheckIn, initialCheckOut, initialAdults, initialChildren }: BookingFormProps) {
+export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], userId, userEmail, userName, userPhone, initialCheckIn, initialCheckOut, initialAdults, initialChildren, initialPets }: BookingFormProps) {
   const router = useRouter()
   const savedGuest = useBookingStore((s) => s.guestDetails)
   const setGuestDetails = useBookingStore((s) => s.setGuestDetails)
@@ -176,6 +180,7 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
       checkOut: initialCheckOut ? format(initialCheckOut, 'yyyy-MM-dd') : undefined,
       adults: initialAdults,
       children: initialChildren,
+      pets: initialPets,
     }).catch(() => {})
     // Once per visit to the review page
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -196,6 +201,7 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
   const [checkOutDate, setCheckOutDate] = useState<Date | undefined>(initialCheckOut)
   const [numAdults, setNumAdults] = useState(initialAdults ?? 1)
   const [numChildren, setNumChildren] = useState(initialChildren ?? 0)
+  const [withPets, setWithPets] = useState(initialPets ?? false)
   const [childrenAges, setChildrenAges] = useState<number[]>([])
   const [numRooms, setNumRooms] = useState(1)
   const [specialRequests, setSpecialRequests] = useState('')
@@ -249,6 +255,7 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
     `${numAdults} ${numAdults === 1 ? 'Adult' : 'Adults'}`,
     numChildren > 0 ? `${numChildren} ${numChildren === 1 ? 'Child' : 'Children'}` : null,
     `${numRooms} ${numRooms === 1 ? 'Room' : 'Rooms'}`,
+    withPets ? 'With pets' : null,
   ]
     .filter(Boolean)
     .join(' · ')
@@ -322,6 +329,7 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
         guestPhone: phone,
         gstDetails: gstDetailsForRequest(gstEnabled, gstDetails),
         whatsappOptIn,
+        withPets,
         checkInDate: format(checkInDate, 'yyyy-MM-dd'),
         checkOutDate: format(checkOutDate, 'yyyy-MM-dd'),
         numAdults,
@@ -472,6 +480,8 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
                   </Select>
                 </div>
               </div>
+
+              <PetsOptIn checked={withPets} onCheckedChange={setWithPets} policy={hotel.pet_policy_text} disabled={!!bookingCreated} />
 
               {/* Child age inputs */}
               {numChildren > 0 && (

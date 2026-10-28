@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/utils/admin'
 import { revalidatePath } from 'next/cache'
 import { verifyHotelAccess } from './_helpers'
 import type { InventorySource, RoomInventoryBlock } from '@/lib/types'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 /**
  * Update inventory source for a hotel (manual | api).
@@ -27,8 +28,8 @@ export async function updateInventorySource(
 
     if (error) throw new Error(error.message)
 
-    revalidatePath(`/admin/hotels/${hotelId}`)
-    revalidatePath('/admin/hotels')
+    revalidatePath(`${ADMIN_PATH}/hotels/${hotelId}`)
+    revalidatePath(`${ADMIN_PATH}/hotels`)
     return { success: true }
   } catch (err: any) {
     console.error('Error updating inventory source:', err)
@@ -183,7 +184,7 @@ export async function createRoomInventoryBlock(data: {
 
     if (error) throw new Error(error.message)
 
-    revalidatePath(`/admin/hotels/${data.hotel_id}`)
+    revalidatePath(`${ADMIN_PATH}/hotels/${data.hotel_id}`)
     return { success: true, block }
   } catch (err: any) {
     console.error('Error creating inventory block:', err)
@@ -212,7 +213,7 @@ export async function deleteRoomInventoryBlock(
 
     if (error) throw new Error(error.message)
 
-    revalidatePath(`/admin/hotels/${hotelId}`)
+    revalidatePath(`${ADMIN_PATH}/hotels/${hotelId}`)
     return { success: true }
   } catch (err: any) {
     console.error('Error deleting inventory block:', err)

@@ -6,6 +6,7 @@ import { HotelFilters } from '@/components/search/HotelFilters'
 import { HotelSearchResults } from '@/components/search/HotelSearchResults'
 import { MobileHotelBar } from '@/components/search/MobileHotelBar'
 import { createClient } from '@/lib/db/server'
+import { hotelLocationFilter } from '@/lib/utils/india-locations'
 import { Loader2 } from 'lucide-react'
 
 interface SearchParams {
@@ -16,6 +17,7 @@ interface SearchParams {
     adults?: string
     children?: string
     rooms?: string
+    pets?: string
     minPrice?: string
     maxPrice?: string
     starRating?: string
@@ -65,9 +67,10 @@ export default async function HotelsPage({ searchParams }: SearchParams) {
     )
     .eq('status', 'active')
 
-  if (params.location) {
-    const locationQuery = `%${params.location}%`
-    query = query.or(`city.ilike.${locationQuery},state.ilike.${locationQuery}`)
+  // City, district, state or hotel name (the hero's destination search)
+  const locationFilter = params.location ? await hotelLocationFilter(params.location) : null
+  if (locationFilter) {
+    query = query.or(locationFilter)
   }
 
   if (params.starRating) {
@@ -199,6 +202,7 @@ export default async function HotelsPage({ searchParams }: SearchParams) {
                 adults: params.adults,
                 children: params.children,
                 rooms: params.rooms,
+                pets: params.pets,
                 minPrice: params.minPrice,
                 maxPrice: params.maxPrice,
                 propertyType: params.propertyType,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/select'
 import { createHotel, updateHotel } from '@/lib/actions/admin'
 import { Loader2 } from 'lucide-react'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
+import { LocationFields } from './LocationFields'
 
 // Extract the src URL from a Google Maps embed iframe code
 function parseIframeSrc(iframeCode: string): string | null {
@@ -38,6 +40,7 @@ export function HotelForm({ hotel, isEdit = false }: HotelFormProps) {
     address_line_1: hotel?.address_line_1 || '',
     address_line_2: hotel?.address_line_2 || '',
     city: hotel?.city || '',
+    district: hotel?.district || '',
     state: hotel?.state || '',
     postal_code: hotel?.postal_code || '',
     country: hotel?.country || 'India',
@@ -72,6 +75,10 @@ export function HotelForm({ hotel, isEdit = false }: HotelFormProps) {
     }
   }
 
+  const handleLocationChange = useCallback((field: 'state' | 'district' | 'city', value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -96,7 +103,7 @@ export function HotelForm({ hotel, isEdit = false }: HotelFormProps) {
         : await createHotel(hotelData)
 
       if (result.success) {
-        router.push('/admin/hotels')
+        router.push(`${ADMIN_PATH}/hotels`)
         router.refresh()
       } else {
         alert(result.error || 'Failed to save hotel')
@@ -235,29 +242,13 @@ export function HotelForm({ hotel, isEdit = false }: HotelFormProps) {
           />
         </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="city">City *</Label>
-            <Input
-              id="city"
-              value={formData.city}
-              onChange={(e) => handleChange('city', e.target.value)}
-              required
-              placeholder="Mumbai"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="state">State *</Label>
-            <Input
-              id="state"
-              value={formData.state}
-              onChange={(e) => handleChange('state', e.target.value)}
-              required
-              placeholder="Maharashtra"
-            />
-          </div>
-        </div>
+        <LocationFields
+          country={formData.country}
+          state={formData.state}
+          district={formData.district}
+          city={formData.city}
+          onChange={handleLocationChange}
+        />
 
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -453,7 +444,7 @@ export function HotelForm({ hotel, isEdit = false }: HotelFormProps) {
         <Button
           type="button"
           variant="outline"
-          onClick={() => router.push('/admin/hotels')}
+          onClick={() => router.push(`${ADMIN_PATH}/hotels`)}
           disabled={isSubmitting}
         >
           Cancel

@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -13,7 +12,9 @@ import {
 import { Eye, ChevronLeft, ChevronRight } from 'lucide-react'
 import { updateBoatBookingStatus } from '@/lib/actions/boat-admin'
 import { ExportButtons } from './ExportButtons'
+import { StatusPill } from './StatusPill'
 import type { ExportColumn } from '@/lib/utils/export'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 interface BoatBookingsTableProps {
   bookings: any[]
@@ -30,20 +31,6 @@ export function BoatBookingsTable({ bookings, pagination }: BoatBookingsTablePro
       const result = await updateBoatBookingStatus(bookingId, newStatus as any)
       if (result.success) { router.refresh() } else { alert(result.error) }
     } catch { alert('Failed to update status') } finally { setUpdating(null) }
-  }
-
-  const getStatusBadge = (status: string) => {
-    const map: Record<string, 'default' | 'secondary' | 'destructive'> = {
-      confirmed: 'default', completed: 'default', pending: 'secondary', cancelled: 'destructive', no_show: 'destructive',
-    }
-    return map[status] || 'secondary'
-  }
-
-  const getPaymentBadge = (status: string) => {
-    const map: Record<string, 'default' | 'secondary' | 'destructive'> = {
-      paid: 'default', pending: 'secondary', failed: 'destructive', refunded: 'destructive',
-    }
-    return map[status] || 'secondary'
   }
 
   const exportColumns: ExportColumn[] = [
@@ -138,7 +125,7 @@ export function BoatBookingsTable({ bookings, pagination }: BoatBookingsTablePro
                   <TableCell>
                     <Select value={b.booking_status} onValueChange={(v) => handleStatusChange(b.id, v)} disabled={updating === b.id}>
                       <SelectTrigger className="w-[120px]">
-                        <SelectValue><Badge variant={getStatusBadge(b.booking_status)}>{b.booking_status}</Badge></SelectValue>
+                        <SelectValue><StatusPill status={b.booking_status} label={b.booking_status} /></SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="pending">Pending</SelectItem>
@@ -149,9 +136,9 @@ export function BoatBookingsTable({ bookings, pagination }: BoatBookingsTablePro
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell><Badge variant={getPaymentBadge(b.payment_status)}>{b.payment_status}</Badge></TableCell>
+                  <TableCell><StatusPill status={b.payment_status} label={b.payment_status} /></TableCell>
                   <TableCell>
-                    <Button size="sm" variant="outline" onClick={() => router.push(`/admin/boat-bookings/${b.booking_reference}`)} title="View">
+                    <Button size="sm" variant="outline" onClick={() => router.push(`${ADMIN_PATH}/boat-bookings/${b.booking_reference}`)} title="View">
                       <Eye className="h-4 w-4" />
                     </Button>
                   </TableCell>

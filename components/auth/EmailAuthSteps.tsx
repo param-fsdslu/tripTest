@@ -1,40 +1,13 @@
 'use client'
 
 /** Email login and email sign-up steps of the login panel */
-import { useActionState, useEffect, useRef, useState } from 'react'
-import { Eye, EyeOff, MailCheck } from 'lucide-react'
+import { useActionState, useEffect, useRef } from 'react'
+import { MailCheck } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Link } from '@/i18n/routing'
 import { signIn, signUp } from '@/lib/actions/auth'
-import { cn } from '@/lib/utils'
-import { authInputClass, FieldLabelText, FormError, PillButton, StepHeader } from './auth-ui'
+import { authInputClass, FieldLabelText, FormError, PasswordInput, PillButton, StepHeader } from './auth-ui'
 import { PhoneNumberInput } from './PhoneNumberInput'
-
-function PasswordInput({ id, autoComplete, minLength }: { id: string; autoComplete: string; minLength?: number }) {
-  const [visible, setVisible] = useState(false)
-  return (
-    <div className="relative">
-      <Input
-        id={id}
-        name="password"
-        type={visible ? 'text' : 'password'}
-        autoComplete={autoComplete}
-        placeholder="••••••••"
-        minLength={minLength}
-        required
-        className={cn(authInputClass, 'pr-11')}
-      />
-      <button
-        type="button"
-        onClick={() => setVisible((v) => !v)}
-        aria-label={visible ? 'Hide password' : 'Show password'}
-        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted-foreground hover:text-foreground"
-      >
-        {visible ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
-      </button>
-    </div>
-  )
-}
 
 interface EmailLoginStepProps {
   onBack: () => void

@@ -2,7 +2,7 @@
 
 /**
  * The login panel as a page (/auth/login, /auth/signup): used for deep links and redirects
- * (e.g. ?redirect=/admin). Same layout as the popup.
+ * (e.g. ?redirect=/bookings). Same layout as the popup.
  */
 import type { AuthIntent } from '@/lib/stores/use-ui-store'
 import { safeRedirectPath } from '@/lib/utils/safe-redirect'

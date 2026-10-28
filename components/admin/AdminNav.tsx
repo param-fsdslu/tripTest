@@ -1,8 +1,13 @@
 'use client'
 
+/**
+ * Admin sidebar: brand, navigation in groups (role- and feature-filtered), and the signed-in
+ * admin with sign-out. Fixed on desktop; slides in on phones (AdminShell owns `open`).
+ */
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { signOut } from '@/lib/actions/auth'
+import { signOutAdmin } from '@/lib/actions/auth'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
@@ -16,199 +21,204 @@ import {
   Users,
   Shield,
   FileText,
-  Menu,
   X,
   Ship,
   Anchor,
   Star,
+  type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { AdminRole } from '@/lib/utils/roles'
-import { useState } from 'react'
 import { isFeatureEnabled, type FeatureName } from '@/lib/config/features'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
+
+export interface AdminNavItem {
+  name: string
+  href: string
+  icon: LucideIcon
+  roles: AdminRole[]
+  feature?: FeatureName
+}
+
+const BOTH: AdminRole[] = ['super_admin', 'hotel_admin']
+
+const NAV_GROUPS: { label: string; items: AdminNavItem[] }[] = [
+  {
+    label: 'Overview',
+    items: [
+      { name: 'Dashboard', href: ADMIN_PATH, icon: LayoutDashboard, roles: BOTH },
+      // Only super admins see global analytics
+      { name: 'Analytics', href: `${ADMIN_PATH}/analytics`, icon: BarChart3, roles: ['super_admin'] },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { name: 'Bookings', href: `${ADMIN_PATH}/bookings`, icon: Calendar, roles: BOTH, feature: 'hotels' },
+      { name: 'Hotels', href: `${ADMIN_PATH}/hotels`, icon: Hotel, roles: BOTH, feature: 'hotels' },
+      { name: 'Boats', href: `${ADMIN_PATH}/boats`, icon: Ship, roles: BOTH, feature: 'boats' },
+      { name: 'Boat Bookings', href: `${ADMIN_PATH}/boat-bookings`, icon: Anchor, roles: BOTH, feature: 'boats' },
+    ],
+  },
+  {
+    label: 'Finance',
+    items: [
+      { name: 'Payments', href: `${ADMIN_PATH}/payments`, icon: CreditCard, roles: BOTH },
+      { name: 'Refunds', href: `${ADMIN_PATH}/refunds`, icon: DollarSign, roles: BOTH },
+    ],
+  },
+  {
+    label: 'Content',
+    items: [
+      { name: 'Reviews', href: `${ADMIN_PATH}/reviews`, icon: Star, roles: BOTH },
+      // Only super admins manage blog
+      { name: 'Blog', href: `${ADMIN_PATH}/blogs`, icon: FileText, roles: ['super_admin'], feature: 'blogs' },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      // Only super admins manage users
+      { name: 'Users', href: `${ADMIN_PATH}/users`, icon: Users, roles: ['super_admin'] },
+      { name: 'Settings', href: `${ADMIN_PATH}/settings`, icon: Settings, roles: BOTH },
+    ],
+  },
+]
+
+/** The groups this admin may see (role + enabled features), empty groups dropped */
+export function visibleNavGroups(role: AdminRole) {
+  return NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => item.roles.includes(role) && (!item.feature || isFeatureEnabled(item.feature))),
+  })).filter((group) => group.items.length > 0)
+}
+
+/** Dashboard only on its own page; every other item also on its sub-pages (e.g. a hotel's edit page) */
+export function isNavItemActive(item: AdminNavItem, pathname: string) {
+  return item.href === ADMIN_PATH ? pathname === ADMIN_PATH : pathname === item.href || pathname.startsWith(`${item.href}/`)
+}
 
 interface AdminNavProps {
   email?: string
   role: AdminRole
   roleDisplayName: string
   hotelIds: string[] | null
+  open: boolean
+  onClose: () => void
 }
 
-export function AdminNav({ email, role, roleDisplayName, hotelIds }: AdminNavProps) {
+export function AdminNav({ email, role, roleDisplayName, hotelIds, open, onClose }: AdminNavProps) {
   const pathname = usePathname()
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-
-  // Define navigation items with role-based access
-  const allNavigation = [
-    {
-      name: 'Dashboard',
-      href: '/admin',
-      icon: LayoutDashboard,
-      roles: ['super_admin', 'hotel_admin'] as AdminRole[],
-    },
-    {
-      name: 'Bookings',
-      href: '/admin/bookings',
-      icon: Calendar,
-      roles: ['super_admin', 'hotel_admin'] as AdminRole[],
-      feature: 'hotels' as FeatureName,
-    },
-    {
-      name: 'Hotels',
-      href: '/admin/hotels',
-      icon: Hotel,
-      roles: ['super_admin', 'hotel_admin'] as AdminRole[],
-      feature: 'hotels' as FeatureName,
-    },
-    {
-      name: 'Boats',
-      href: '/admin/boats',
-      icon: Ship,
-      roles: ['super_admin', 'hotel_admin'] as AdminRole[],
-      feature: 'boats' as FeatureName,
-    },
-    {
-      name: 'Boat Bookings',
-      href: '/admin/boat-bookings',
-      icon: Anchor,
-      roles: ['super_admin', 'hotel_admin'] as AdminRole[],
-      feature: 'boats' as FeatureName,
-    },
-    {
-      name: 'Payments',
-      href: '/admin/payments',
-      icon: CreditCard,
-      roles: ['super_admin', 'hotel_admin'] as AdminRole[],
-    },
-    {
-      name: 'Refunds',
-      href: '/admin/refunds',
-      icon: DollarSign,
-      roles: ['super_admin', 'hotel_admin'] as AdminRole[],
-    },
-    {
-      name: 'Analytics',
-      href: '/admin/analytics',
-      icon: BarChart3,
-      roles: ['super_admin'] as AdminRole[], // Only super admins see global analytics
-    },
-    {
-      name: 'Users',
-      href: '/admin/users',
-      icon: Users,
-      roles: ['super_admin'] as AdminRole[], // Only super admins manage users
-    },
-    {
-      name: 'Reviews',
-      href: '/admin/reviews',
-      icon: Star,
-      roles: ['super_admin', 'hotel_admin'] as AdminRole[],
-    },
-    {
-      name: 'Blog',
-      href: '/admin/blogs',
-      icon: FileText,
-      roles: ['super_admin'] as AdminRole[], // Only super admins manage blog
-      feature: 'blogs' as FeatureName,
-    },
-    {
-      name: 'Settings',
-      href: '/admin/settings',
-      icon: Settings,
-      roles: ['super_admin', 'hotel_admin'] as AdminRole[],
-    },
-  ]
-
-  // Filter navigation based on user role
-  const navigation = allNavigation.filter(
-    (item) => item.roles.includes(role) && (!item.feature || isFeatureEnabled(item.feature))
-  )
+  const groups = visibleNavGroups(role)
+  const initial = (email?.trim()[0] ?? 'A').toUpperCase()
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-secondary text-white rounded-lg shadow-lg"
-        aria-label="Toggle menu"
-      >
-        {isSidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </button>
-
       {/* Overlay for mobile */}
-      {isSidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-30"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+      <div
+        aria-hidden
+        onClick={onClose}
+        className={cn(
+          'fixed inset-0 z-40 bg-secondary/40 backdrop-blur-[2px] transition-opacity lg:hidden',
+          open ? 'opacity-100' : 'pointer-events-none opacity-0'
+        )}
+      />
 
       {/* Sidebar */}
-      <div
+      <aside
         className={cn(
-          'flex h-screen flex-col bg-secondary text-white w-64 fixed lg:sticky top-0 z-40 transition-transform duration-300 ease-in-out',
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          'fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col border-r border-border bg-card transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:translate-x-0',
+          open ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         )}
       >
         {/* Logo */}
-        <div className="flex h-16 items-center px-6 border-b border-white/10">
-          <h1 className="text-xl font-bold">Admin Panel</h1>
+        <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border px-5">
+          <Link href={ADMIN_PATH} onClick={onClose} className="flex min-w-0 items-center gap-2.5">
+            <Image src="/company-logo-only.svg" alt="" width={28} height={28} className="h-7 w-7 shrink-0" />
+            <span className="truncate font-heading text-[17px] font-bold text-foreground">Admin Panel</span>
+          </Link>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Toggle menu"
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href
-            const Icon = item.icon
-
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setIsSidebarOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-primary text-white'
-                    : 'text-white/70 hover:bg-white/10 hover:text-white'
-                )}
-              >
-                <Icon className="h-5 w-5" />
-                {item.name}
-              </Link>
-            )
-          })}
+        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-5">
+          {groups.map((group) => (
+            <div key={group.label}>
+              <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/80">
+                {group.label}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const isActive = isNavItemActive(item, pathname)
+                  const Icon = item.icon
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={onClose}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={cn(
+                        'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                        isActive
+                          ? 'bg-mint font-semibold text-primary'
+                          : 'font-medium text-foreground/75 hover:bg-muted hover:text-foreground'
+                      )}
+                    >
+                      {isActive && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full bg-primary" />}
+                      <Icon
+                        className={cn(
+                          'h-[18px] w-[18px] shrink-0',
+                          isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+                        )}
+                      />
+                      {item.name}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* User Info */}
-        <div className="border-t border-white/10 p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <Shield className="h-4 w-4 text-gold" />
-                <p className="text-sm font-medium text-white truncate">{roleDisplayName}</p>
+        <div className="shrink-0 border-t border-border p-3">
+          <div className="flex items-center gap-3 rounded-xl bg-muted/60 p-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary font-heading text-sm font-bold text-white">
+              {initial}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5 shrink-0 text-gold" />
+                <p className="truncate text-sm font-semibold text-foreground">{roleDisplayName}</p>
               </div>
-              <p className="text-xs text-white/70 truncate">{email}</p>
+              <p className="truncate text-xs text-muted-foreground">{email}</p>
               {role === 'hotel_admin' && hotelIds && hotelIds.length > 0 && (
-                <p className="text-xs text-white/50 mt-1">
+                <p className="mt-0.5 text-xs text-muted-foreground/80">
                   Managing {hotelIds.length} {hotelIds.length === 1 ? 'hotel' : 'hotels'}
                 </p>
               )}
             </div>
-            <form action={signOut}>
+            <form action={signOutAdmin}>
               <Button
                 type="submit"
                 variant="ghost"
                 size="icon"
-                className="text-white/70 hover:text-white hover:bg-white/10"
+                className="h-8 w-8 text-muted-foreground hover:bg-card hover:text-destructive"
                 title="Sign out"
               >
-                <LogOut className="h-5 w-5" />
+                <LogOut className="h-4 w-4" />
               </Button>
             </form>
           </div>
         </div>
-      </div>
+      </aside>
     </>
   )
 }

@@ -14,6 +14,7 @@ import { createClient, createAdminClient } from '@/lib/db/server'
 import { requireSuperAdmin } from '@/lib/utils/admin'
 import { revalidatePath } from 'next/cache'
 import type { AdminRole } from '@/lib/utils/roles'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 /**
  * Lists all users with admin roles (super_admin, hotel_admin, or legacy admin).
@@ -144,7 +145,7 @@ export async function createAdminUser(data: {
       }
     }
 
-    revalidatePath('/admin/users')
+    revalidatePath(`${ADMIN_PATH}/users`)
 
     return {
       success: true,
@@ -249,7 +250,7 @@ export async function updateAdminUser(data: {
       }
     }
 
-    revalidatePath('/admin/users')
+    revalidatePath(`${ADMIN_PATH}/users`)
 
     return {
       success: true,
@@ -299,7 +300,7 @@ export async function deleteAdminUser(userId: string) {
       throw new Error(error.message)
     }
 
-    revalidatePath('/admin/users')
+    revalidatePath(`${ADMIN_PATH}/users`)
 
     return {
       success: true,

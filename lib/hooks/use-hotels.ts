@@ -7,14 +7,14 @@
  * client components. staleTime values are tuned per use case:
  * - Search results: 5 min (results change with availability)
  * - Featured hotels: 10 min (rarely changes)
- * - Popular destinations: 15 min (very stable)
+ * - Destination search index: 15 min (very stable)
  * - Hotel detail: default (fresh on every mount)
  *
  * The baseUrl pattern (window.location.origin with SSR fallback) ensures these
  * fetch calls work in both browser and server render contexts.
  */
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import type { HotelSearchParams, HotelWithDetails } from '@/lib/types';
+import type { DestinationIndex, HotelSearchParams, HotelWithDetails } from '@/lib/types';
 
 /**
  * Calls /api/hotels/search with the given search params.
@@ -72,24 +72,24 @@ export function useFeaturedHotels(limit: number = 6) {
 }
 
 /**
- * Fetch function for popular destinations API
+ * Fetch function for the destination search index
  */
-async function fetchPopularDestinations(limit: number = 10) {
+async function fetchDestinationIndex(): Promise<DestinationIndex> {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-  const response = await fetch(`${baseUrl}/api/hotels/destinations?limit=${limit}`);
+  const response = await fetch(`${baseUrl}/api/hotels/destinations`);
   if (!response.ok) throw new Error('Failed to fetch destinations');
   const data = await response.json();
   return data.data;
 }
 
 /**
- * Fetches popular cities by hotel count. Cached for 15 minutes.
- * Used in the search autocomplete and destination cards on the homepage.
+ * Places with stays (city / district / state, with counts) and the stays themselves, for the
+ * destination search in HotelSearchBox. Cached for 15 minutes.
  */
-export function usePopularDestinations(limit: number = 10) {
+export function useDestinationIndex() {
   return useQuery({
-    queryKey: ['destinations', 'popular', limit],
-    queryFn: () => fetchPopularDestinations(limit),
+    queryKey: ['destinations', 'index'],
+    queryFn: fetchDestinationIndex,
     staleTime: 1000 * 60 * 15, // 15 minutes
   });
 }

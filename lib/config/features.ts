@@ -54,12 +54,11 @@ const FEATURE_ROUTE_PATTERNS: Record<FeatureName, string[]> = {
 
 /**
  * Given a pathname, returns the feature it belongs to (if any).
- * Strips locale, /admin, and /api prefixes before matching.
+ * Strips locale and /api prefixes before matching (middleware strips the admin panel's).
  */
 export function getFeatureForPath(pathname: string): FeatureName | null {
   const normalized = pathname
     .replace(/^\/(en|es|fr)/, "")
-    .replace(/^\/admin/, "")
     .replace(/^\/api/, "");
 
   for (const [feature, patterns] of Object.entries(FEATURE_ROUTE_PATTERNS)) {

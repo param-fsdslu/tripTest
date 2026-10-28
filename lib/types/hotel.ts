@@ -65,6 +65,7 @@ export interface Hotel {
   address_line_1: string;
   address_line_2?: string;
   city: string;
+  district?: string;
   state: string;
   country: string;
   postal_code?: string;
@@ -98,6 +99,7 @@ export interface Hotel {
 
 export interface HotelWithDetails extends Hotel {
   hotel_images: HotelImage[];
+  hotel_panoramas?: HotelPanorama[];
   room_types: RoomType[];
   hotel_amenities: HotelAmenity[];
   reviews: Review[];
@@ -110,6 +112,30 @@ export interface HotelImage {
   image_url: string;
   alt_text?: string;
   is_primary: boolean;
+  display_order: number;
+}
+
+/** A place the destination search suggests: a city with active stays */
+export interface DestinationPlace {
+  kind: 'city';
+  name: string;
+  /** "District, State", e.g. "Uttara Kannada, Karnataka" */
+  region: string;
+  stays: number;
+}
+
+/** What the destination search can suggest (GET /api/hotels/destinations) */
+export interface DestinationIndex {
+  places: DestinationPlace[];
+  stays: { name: string; slug: string; region: string }[];
+}
+
+/** A 360° photo (equirectangular, 2:1) shown in the hotel page's viewer */
+export interface HotelPanorama {
+  id: string;
+  hotel_id: string;
+  image_url: string;
+  title: string | null;
   display_order: number;
 }
 
@@ -235,6 +261,8 @@ export interface Booking {
   booking_status?: string;
   payment_status?: string;
   special_requests?: string;
+  /** Travelling with pets (search box / review page checkbox) */
+  with_pets?: boolean;
   cancellation_deadline?: string;
   prepayment_required: boolean;
   credit_card_required: boolean;

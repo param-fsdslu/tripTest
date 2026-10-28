@@ -23,6 +23,7 @@ import { Eye, ChevronLeft, ChevronRight, Star, Edit, Trash2 } from 'lucide-react
 import { updateHotelStatus, deleteHotel } from '@/lib/actions/admin'
 import { ExportButtons } from './ExportButtons'
 import type { ExportColumn } from '@/lib/utils/export'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 interface Hotel {
   id: string
@@ -231,7 +232,7 @@ export function HotelsTable({ hotels, pagination }: HotelsTableProps) {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => router.push(`/admin/hotels/${hotel.id}`)}
+                        onClick={() => router.push(`${ADMIN_PATH}/hotels/${hotel.id}`)}
                         title="Edit hotel"
                       >
                         <Edit className="h-4 w-4" />

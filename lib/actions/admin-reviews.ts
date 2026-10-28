@@ -9,6 +9,7 @@
 import { createAdminClient } from '@/lib/db/server'
 import { requireAdmin } from '@/lib/utils/admin'
 import { revalidatePath } from 'next/cache'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 // ─── Hotel Reviews ────────────────────────────────────────────────────────────
 
@@ -68,7 +69,7 @@ export async function approveHotelReview(reviewId: string) {
     return { success: false, error: error.message }
   }
 
-  revalidatePath('/admin/reviews')
+  revalidatePath(`${ADMIN_PATH}/reviews`)
   revalidatePath('/', 'layout') // flush hotel detail pages
   return { success: true }
 }
@@ -87,7 +88,7 @@ export async function rejectHotelReview(reviewId: string) {
     return { success: false, error: error.message }
   }
 
-  revalidatePath('/admin/reviews')
+  revalidatePath(`${ADMIN_PATH}/reviews`)
   revalidatePath('/', 'layout')
   return { success: true }
 }
@@ -129,7 +130,7 @@ export async function approveBoatReview(reviewId: string) {
     return { success: false, error: error.message }
   }
 
-  revalidatePath('/admin/reviews')
+  revalidatePath(`${ADMIN_PATH}/reviews`)
   revalidatePath('/', 'layout')
   return { success: true }
 }
@@ -148,7 +149,7 @@ export async function rejectBoatReview(reviewId: string) {
     return { success: false, error: error.message }
   }
 
-  revalidatePath('/admin/reviews')
+  revalidatePath(`${ADMIN_PATH}/reviews`)
   revalidatePath('/', 'layout')
   return { success: true }
 }

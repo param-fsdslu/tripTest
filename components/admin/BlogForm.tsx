@@ -17,6 +17,7 @@ import { RichTextEditor } from './RichTextEditor'
 import { createBlog, updateBlog, uploadBlogImage, type Blog, type BlogStatus } from '@/lib/actions/blogs'
 import { Save, Eye, ImageIcon, X } from 'lucide-react'
 import Image from 'next/image'
+import { ADMIN_PATH } from '@/lib/config/admin-path'
 
 interface BlogFormProps {
   blog?: Blog
@@ -65,7 +66,7 @@ export function BlogForm({ blog }: BlogFormProps) {
     }
 
     if (result.success) {
-      router.push('/admin/blogs')
+      router.push(`${ADMIN_PATH}/blogs`)
       router.refresh()
     } else {
       setError(result.error || 'Failed to save blog')
