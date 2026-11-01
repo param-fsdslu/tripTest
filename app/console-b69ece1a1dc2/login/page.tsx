@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { ArrowLeft, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ShieldCheck } from '@/components/icons'
 import { AdminLoginForm } from '@/components/admin/AdminLoginForm'
 import { ADMIN_PATH } from '@/lib/config/admin-path'
 import { createClient } from '@/lib/db/server'

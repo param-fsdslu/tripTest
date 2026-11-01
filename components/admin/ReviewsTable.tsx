@@ -21,7 +21,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { format } from 'date-fns'
-import { Eye, Check, X, Loader2, Star } from 'lucide-react'
+import { Eye, Check, X, Loader2, Star } from '@/components/icons'
 import {
   approveHotelReview,
   rejectHotelReview,

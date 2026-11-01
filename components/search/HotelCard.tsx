@@ -17,7 +17,7 @@
 import { useState, useCallback } from 'react'
 import Image from 'next/image'
 import { Link } from '@/i18n/routing'
-import { Star, MapPin, Hotel, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
+import { Star, MapPin, Hotel, ChevronLeft, ChevronRight, ArrowRight } from '@/components/icons'
 import { WishlistButton } from '@/components/wishlist/WishlistButton'
 import { cn, formatCurrency, getInclusivePrice } from '@/lib/utils'
 
@@ -255,7 +255,7 @@ export function HotelCard({ hotel }: HotelCardProps) {
 
               <Link
                 href={href}
-                className="group/cta inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-primary px-4 py-2.5
+                className="group/cta inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-primary px-5 py-2.5
                            text-sm font-semibold text-white transition-colors hover:bg-primary-hover @xl:w-full"
               >
                 View stay

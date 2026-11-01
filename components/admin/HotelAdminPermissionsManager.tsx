@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, ShieldCheck, ShieldOff } from 'lucide-react'
+import { Loader2, ShieldCheck, ShieldOff } from '@/components/icons'
 import { updateHotelAdminPermission } from '@/lib/actions/admin/permissions'
 import {
   HOTEL_ADMIN_PERMISSION_LABELS,

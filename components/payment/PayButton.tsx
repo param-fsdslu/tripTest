@@ -4,7 +4,7 @@
  * PayButton — "Pay ₹X" for a booking the review form already created, driven by the form's
  * useRazorpayCheckout so it shows the same progress as the automatic first attempt.
  */
-import { CreditCard, Loader2 } from 'lucide-react'
+import { CreditCard, Loader2 } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import type { useRazorpayCheckout } from '@/lib/hooks/useRazorpayCheckout'
 
@@ -30,7 +30,7 @@ export function PayButton({ amount, checkout, onPay }: PayButtonProps) {
       onClick={onPay}
       disabled={isError || stage !== 'idle'}
       variant={isError ? 'destructive' : 'default'}
-      className="h-12 w-full gap-2 rounded-xl text-base font-bold"
+      className="h-12 w-full gap-2 rounded-full text-base font-bold"
     >
       {isError ? (
         'Payment system unavailable'

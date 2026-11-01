@@ -15,15 +15,18 @@ import {
 } from '@/components/ui/select'
 import { RichTextEditor } from './RichTextEditor'
 import { createBlog, updateBlog, uploadBlogImage, type Blog, type BlogStatus } from '@/lib/actions/blogs'
-import { Save, Eye, ImageIcon, X } from 'lucide-react'
+import { Save, Eye, ImageIcon, X, MapPin } from '@/components/icons'
 import Image from 'next/image'
 import { ADMIN_PATH } from '@/lib/config/admin-path'
+import { cleanCity, sameCity } from '@/lib/utils/blog-city'
 
 interface BlogFormProps {
   blog?: Blog
+  /** Suggestions for the City field (cities with hotels, then cities on other posts) */
+  cityOptions?: string[]
 }
 
-export function BlogForm({ blog }: BlogFormProps) {
+export function BlogForm({ blog, cityOptions = [] }: BlogFormProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [imageUploading, setImageUploading] = useState(false)
@@ -38,7 +41,11 @@ export function BlogForm({ blog }: BlogFormProps) {
     meta_title: blog?.meta_title || '',
     meta_description: blog?.meta_description || '',
     tags: blog?.tags?.join(', ') || '',
+    city: blog?.city || '',
   })
+
+  // A typed city that matches a suggestion takes its spelling, so posts and hotels share one name
+  const canonicalCity = (value: string) => cityOptions.find((option) => sameCity(option, value)) ?? cleanCity(value)
 
   const handleSubmit = async (e: React.FormEvent, status?: BlogStatus) => {
     e.preventDefault()
@@ -46,6 +53,7 @@ export function BlogForm({ blog }: BlogFormProps) {
     setIsSubmitting(true)
 
     const submitData = {
+      city: canonicalCity(formData.city),
       title: formData.title,
       excerpt: formData.excerpt || undefined,
       content: formData.content,
@@ -238,6 +246,36 @@ export function BlogForm({ blog }: BlogFormProps) {
                 />
                 <p className="text-xs text-muted-foreground mt-1">Max size: 5MB</p>
               </div>
+            </div>
+          </div>
+
+          {/* Location */}
+          <div className="bg-white border rounded-lg p-6">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary" />
+              Location
+            </h3>
+            <div>
+              <Label htmlFor="city">City</Label>
+              <Input
+                id="city"
+                list="blog-city-options"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                onBlur={() => setFormData((prev) => ({ ...prev, city: canonicalCity(prev.city) ?? '' }))}
+                placeholder="e.g. Honnavar"
+                autoComplete="off"
+                maxLength={80}
+              />
+              <datalist id="blog-city-options">
+                {cityOptions.map((city) => (
+                  <option key={city} value={city} />
+                ))}
+              </datalist>
+              <p className="text-xs text-muted-foreground mt-1">
+                Guests who pick this city in the search (or on the Journal page) see this post. Leave empty for a
+                general post.
+              </p>
             </div>
           </div>
 

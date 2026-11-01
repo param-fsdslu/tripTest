@@ -21,7 +21,7 @@ import {
   Waves,
   Wind,
   X,
-} from 'lucide-react'
+} from '@/components/icons'
 import { getFilterAmenities } from '@/lib/actions/session'
 
 interface HotelFiltersProps {

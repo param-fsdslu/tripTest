@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowRight, Phone } from 'lucide-react'
+import { ArrowRight, Phone } from '@/components/icons'
 import { ListPropertyDialog } from '@/components/listing/ListPropertyDialog'
 
 /** Deep Teal call-to-action card inviting owners to list their property */
@@ -33,7 +33,7 @@ export function ListPropertyCta() {
               <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="group inline-flex items-center justify-center gap-2 rounded-lg bg-gold px-5 py-3
+                className="group inline-flex items-center justify-center gap-2 rounded-full bg-gold px-5 py-3
                            text-sm font-semibold text-secondary transition-colors hover:bg-gold/90"
               >
                 List your property
@@ -41,7 +41,7 @@ export function ListPropertyCta() {
               </button>
               <a
                 href="tel:+919113887712"
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/25 px-5 py-3
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/25 px-5 py-3
                            text-sm font-semibold text-white transition-colors hover:bg-white/10"
               >
                 <Phone className="h-4 w-4" />

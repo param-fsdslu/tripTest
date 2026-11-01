@@ -10,7 +10,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { Eye, ChevronLeft, ChevronRight, Edit, Trash2, Ship } from 'lucide-react'
+import { Eye, ChevronLeft, ChevronRight, Edit, Trash2, Ship } from '@/components/icons'
 import { updateBoatStatus, deleteBoat } from '@/lib/actions/boat-admin'
 import { ExportButtons } from './ExportButtons'
 import type { ExportColumn } from '@/lib/utils/export'

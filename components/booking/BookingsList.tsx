@@ -37,7 +37,7 @@ import {
   XCircle,
   CheckCircle2,
   KeyRound,
-} from 'lucide-react'
+} from '@/components/icons'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { format, isPast, isFuture, startOfToday } from 'date-fns'

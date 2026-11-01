@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ReviewsTable } from '@/components/admin/ReviewsTable'
 import { getAdminHotelReviews, getAdminBoatReviews } from '@/lib/actions/admin-reviews'
-import { Star, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { Star, Clock, CheckCircle, XCircle } from '@/components/icons'
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
 import { StatCard } from '@/components/admin/StatCard'
 

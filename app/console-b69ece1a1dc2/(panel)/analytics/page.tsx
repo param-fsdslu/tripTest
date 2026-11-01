@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { BarChart3 } from 'lucide-react'
+import { BarChart3 } from '@/components/icons'
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
 
 export default function AdminAnalyticsPage() {

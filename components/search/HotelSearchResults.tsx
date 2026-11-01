@@ -2,7 +2,7 @@
 
 import { HotelCard } from './HotelCard'
 import { HotelSortBar } from './HotelSortBar'
-import { Hotel } from 'lucide-react'
+import { Hotel } from '@/components/icons'
 
 interface HotelSearchResultsProps {
   hotels: any[]

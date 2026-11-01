@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Shield } from 'lucide-react'
+import { Shield } from '@/components/icons'
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
 import { checkIsSuperAdmin } from '@/lib/utils/admin'
 import { getHotelAdminPermissions } from '@/lib/actions/admin/permissions'

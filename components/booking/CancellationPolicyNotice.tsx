@@ -1,4 +1,4 @@
-import { ShieldAlert } from 'lucide-react'
+import { ShieldAlert } from '@/components/icons'
 import { FREE_CANCELLATION_HOURS, EFFECTIVE_GATEWAY_FEE_PERCENT } from '@/lib/config/cancellation-policy'
 
 /**

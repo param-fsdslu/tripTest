@@ -7,7 +7,7 @@
  * "Select" jumps to that room in the rooms list.
  */
 import Image from 'next/image'
-import { ArrowRight, BedDouble, Users } from 'lucide-react'
+import { ArrowRight, BedDouble, Users } from '@/components/icons'
 import { cn, formatCurrency, getInclusivePrice } from '@/lib/utils'
 
 export interface AvailabilityRoom {
@@ -121,7 +121,7 @@ export function RoomAvailabilityCard({ rooms, stayLabel, onSelectRoom, onViewAll
                     type="button"
                     disabled={status.soldOut}
                     onClick={() => onSelectRoom(room.id)}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-primary shadow-sm transition-colors hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/60 disabled:text-muted-foreground"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-sm font-bold text-primary shadow-sm transition-colors hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/60 disabled:text-muted-foreground"
                   >
                     {status.soldOut ? 'Sold out' : 'Select'}
                     {!status.soldOut && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
@@ -137,7 +137,7 @@ export function RoomAvailabilityCard({ rooms, stayLabel, onSelectRoom, onViewAll
         <button
           type="button"
           onClick={onViewAll}
-          className="hidden items-center justify-center gap-1.5 rounded-xl border border-border bg-card py-2.5 text-sm font-semibold text-primary transition-colors hover:border-primary/30 hover:bg-mint/50 lg:flex"
+          className="hidden items-center justify-center gap-1.5 rounded-full border border-border bg-card py-2.5 text-sm font-semibold text-primary transition-colors hover:border-primary/30 hover:bg-mint/50 lg:flex"
         >
           View all {rooms.length} room types
           <ArrowRight className="h-4 w-4" />

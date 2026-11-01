@@ -4,7 +4,7 @@
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Eye, Plus, Rotate3d, Trash2, Upload } from 'lucide-react'
+import { Eye, Plus, Rotate3d, Trash2, Upload } from '@/components/icons'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {

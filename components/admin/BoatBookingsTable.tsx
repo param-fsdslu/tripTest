@@ -9,7 +9,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { Eye, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Eye, ChevronLeft, ChevronRight } from '@/components/icons'
 import { updateBoatBookingStatus } from '@/lib/actions/boat-admin'
 import { ExportButtons } from './ExportButtons'
 import { StatusPill } from './StatusPill'

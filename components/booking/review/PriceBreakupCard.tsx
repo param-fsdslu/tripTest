@@ -7,7 +7,7 @@
  * payment / Razorpay). Hotel, dates and guests stay on the left.
  */
 import { useState, type ReactNode } from 'react'
-import { ChevronDown, Lock } from 'lucide-react'
+import { ChevronDown, Lock } from '@/components/icons'
 import { cn } from '@/lib/utils'
 
 export interface PriceLine {

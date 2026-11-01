@@ -18,6 +18,8 @@ export async function getAllBookings(filters?: {
   dateTo?: string
   search?: string
   hotelId?: string
+  /** One website user's bookings (admin Users page → View bookings) */
+  userId?: string
   page?: number
   limit?: number
 }) {
@@ -77,6 +79,10 @@ export async function getAllBookings(filters?: {
 
     if (filters?.hotelId) {
       query = query.eq('hotel_id', filters.hotelId)
+    }
+
+    if (filters?.userId) {
+      query = query.eq('user_id', filters.userId)
     }
 
     // Search by booking reference, guest name, or guest email

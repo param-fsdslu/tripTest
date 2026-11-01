@@ -6,7 +6,7 @@
  * booking stores it as `whatsapp_opt_in`, and only then does notifyBookingConfirmed send the guest
  * WhatsApp confirmation.
  */
-import { MessageCircle } from 'lucide-react'
+import { MessageCircle } from '@/components/icons'
 import { Checkbox } from '@/components/ui/checkbox'
 
 interface WhatsAppOptInProps {

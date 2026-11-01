@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { getPayments, getPaymentStats } from '@/lib/actions/admin'
-import { Search, Filter, Download, Eye, CreditCard, TrendingUp, AlertCircle } from 'lucide-react'
+import { Search, Filter, Download, Eye, CreditCard, TrendingUp, AlertCircle } from '@/components/icons'
 import { formatCurrency } from '@/lib/utils'
 import { PaymentDetailsDialog } from './PaymentDetailsDialog'
 

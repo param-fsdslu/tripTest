@@ -22,7 +22,7 @@ import {
   startOfMonth,
   startOfWeek,
 } from 'date-fns'
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2 } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -290,12 +290,12 @@ export function BookingCalendar({ hotels, load = getBookingCalendar }: BookingCa
           <Button variant="outline" size="sm" onClick={() => setMonth(startOfMonth(new Date()))} disabled={!month}>
             Today
           </Button>
-          <div className="flex items-center rounded-md border border-border">
+          <div className="flex items-center rounded-full border border-border">
             <button
               type="button"
               aria-label="Previous month"
               onClick={() => month && setMonth(addMonths(month, -1))}
-              className="flex h-8 w-8 items-center justify-center rounded-l-md text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="flex h-8 w-8 items-center justify-center rounded-l-full text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -306,7 +306,7 @@ export function BookingCalendar({ hotels, load = getBookingCalendar }: BookingCa
               type="button"
               aria-label="Next month"
               onClick={() => month && setMonth(addMonths(month, 1))}
-              className="flex h-8 w-8 items-center justify-center rounded-r-md text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="flex h-8 w-8 items-center justify-center rounded-r-full text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <ChevronRight className="h-4 w-4" />
             </button>

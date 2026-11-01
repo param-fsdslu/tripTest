@@ -7,7 +7,7 @@
  */
 import { useMemo, useState } from 'react'
 import Image from 'next/image'
-import { ArrowUpRight, Hotel, MapPin, Star } from 'lucide-react'
+import { ArrowUpRight, Hotel, MapPin, Star } from '@/components/icons'
 import { Link } from '@/i18n/routing'
 import { WishlistButton } from '@/components/wishlist/WishlistButton'
 import { cn, formatCurrency, getInclusivePrice } from '@/lib/utils'

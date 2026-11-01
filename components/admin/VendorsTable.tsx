@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Shield, Hotel, Trash2, Edit, MoreVertical } from 'lucide-react'
+import { Shield, Hotel, Trash2, Edit, MoreVertical } from '@/components/icons'
 import { ExportButtons } from './ExportButtons'
 import type { ExportColumn } from '@/lib/utils/export'
 import { Button } from '@/components/ui/button'
@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { EditUserDialog } from './EditUserDialog'
+import { EditVendorDialog } from './EditVendorDialog'
 import { deleteAdminUser } from '@/lib/actions/users'
 import { useRouter } from 'next/navigation'
 import type { AdminRole } from '@/lib/utils/roles'
@@ -39,11 +39,11 @@ interface User {
   emailConfirmed: boolean
 }
 
-interface UsersTableProps {
+interface VendorsTableProps {
   users: User[]
 }
 
-export function UsersTable({ users }: UsersTableProps) {
+export function VendorsTable({ users }: VendorsTableProps) {
   const router = useRouter()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -71,7 +71,7 @@ export function UsersTable({ users }: UsersTableProps) {
       setSelectedUser(null)
       router.refresh()
     } else {
-      alert(result.error || 'Failed to delete user')
+      alert(result.error || 'Failed to delete vendor')
     }
     setIsDeleting(false)
   }
@@ -118,8 +118,8 @@ export function UsersTable({ users }: UsersTableProps) {
     return (
       <div className="bg-white border rounded-lg p-12 text-center">
         <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-foreground mb-2">No admin users found</h3>
-        <p className="text-muted-foreground">Create your first admin user to get started.</p>
+        <h3 className="text-lg font-medium text-foreground mb-2">No vendors yet</h3>
+        <p className="text-muted-foreground">Add a vendor to give a hotel owner access to this panel.</p>
       </div>
     )
   }
@@ -127,7 +127,7 @@ export function UsersTable({ users }: UsersTableProps) {
   return (
     <>
       <div className="flex justify-end mb-4">
-        <ExportButtons rows={users} columns={exportColumns} filenamePrefix="admin-users" title="Admin Users" />
+        <ExportButtons rows={users} columns={exportColumns} filenamePrefix="vendors" title="Vendors" />
       </div>
       <div className="bg-white border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
@@ -135,7 +135,7 @@ export function UsersTable({ users }: UsersTableProps) {
             <thead className="bg-background">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  User
+                  Vendor
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Role
@@ -218,14 +218,14 @@ export function UsersTable({ users }: UsersTableProps) {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleEditClick(user)}>
                           <Edit className="h-4 w-4 mr-2" />
-                          Edit User
+                          Edit Vendor
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleDeleteClick(user)}
                           className="text-red-600"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Delete User
+                          Delete Vendor
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -241,7 +241,7 @@ export function UsersTable({ users }: UsersTableProps) {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Admin User</AlertDialogTitle>
+            <AlertDialogTitle>Delete Vendor</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete <strong>{selectedUser?.email}</strong>? This action
               cannot be undone. Any hotels assigned to this user will become unassigned.
@@ -254,7 +254,7 @@ export function UsersTable({ users }: UsersTableProps) {
               disabled={isDeleting}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isDeleting ? 'Deleting...' : 'Delete User'}
+              {isDeleting ? 'Deleting...' : 'Delete Vendor'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -262,7 +262,7 @@ export function UsersTable({ users }: UsersTableProps) {
 
       {/* Edit User Dialog */}
       {selectedUser && (
-        <EditUserDialog
+        <EditVendorDialog
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
           user={selectedUser}

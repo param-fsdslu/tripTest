@@ -32,7 +32,7 @@ import {
   Wifi,
   ChevronDown,
   ChevronUp,
-} from 'lucide-react'
+} from '@/components/icons'
 
 interface ReviewDialogProps {
   booking: {

@@ -5,7 +5,7 @@
  * Guests checkbox (`pets=1` in the URL); the booking stores it as `with_pets` so the property
  * knows ahead. When ticked, the property's own pet policy (hotels.pet_policy_text) is shown.
  */
-import { PawPrint } from 'lucide-react'
+import { PawPrint } from '@/components/icons'
 import { Checkbox } from '@/components/ui/checkbox'
 
 interface PetsOptInProps {

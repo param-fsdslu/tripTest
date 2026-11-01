@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { updateBookingStatus } from '@/lib/actions/admin'
-import { Loader2 } from 'lucide-react'
+import { Loader2 } from '@/components/icons'
 
 interface BookingStatusUpdaterProps {
   bookingId: string

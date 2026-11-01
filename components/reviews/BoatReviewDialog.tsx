@@ -29,7 +29,7 @@ import {
   DollarSign,
   ChevronDown,
   ChevronUp,
-} from 'lucide-react'
+} from '@/components/icons'
 
 interface BoatReviewDialogProps {
   booking: {

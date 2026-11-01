@@ -38,7 +38,7 @@ import {
   Clock,
   User,
   MessageSquare,
-} from 'lucide-react';
+} from '@/components/icons';
 import { getAmenityIcon } from '@/lib/utils/amenityIcons';
 import { FREE_CANCELLATION_HOURS } from '@/lib/config/cancellation-policy';
 import { Button } from '@/components/ui/button';
@@ -354,7 +354,7 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
             <button
               type="button"
               onClick={() => scrollToSection('reviews')}
-              className="flex shrink-0 items-center gap-3 self-start rounded-xl border border-border bg-card px-3 py-2.5 text-left transition-colors hover:border-primary/30"
+              className="flex shrink-0 items-center gap-3 self-start rounded-full border border-border bg-card px-4 py-2.5 text-left transition-colors hover:border-primary/30"
             >
               <span className="rounded-lg rounded-bl-none bg-primary px-2.5 py-1.5 font-heading text-lg font-bold text-white">
                 {avgRating.toFixed(1)}
@@ -770,7 +770,7 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
             ) : null}
             <p className="truncate text-xs text-muted-foreground">{staySummary}</p>
           </div>
-          <Button type="button" onClick={() => scrollToSection('rooms')} className="h-11 shrink-0 rounded-xl px-6 font-bold">
+          <Button type="button" onClick={() => scrollToSection('rooms')} className="h-11 shrink-0 rounded-full px-6 font-bold">
             Select rooms
           </Button>
         </div>

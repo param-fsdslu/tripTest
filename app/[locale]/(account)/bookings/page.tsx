@@ -6,7 +6,7 @@ import { getSavedStays } from '@/lib/actions/saved-stays'
 import { SavedStaysList } from '@/components/account/SavedStaysList'
 import { BookingsList } from '@/components/booking/BookingsList'
 import { Button } from '@/components/ui/button'
-import { Hotel } from 'lucide-react'
+import { Hotel } from '@/components/icons'
 
 /**
  * My Bookings — the account's home for trips: rooms picked but not paid for (saved stays), then

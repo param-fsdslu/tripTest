@@ -11,7 +11,7 @@
  * The button is disabled until the Razorpay script is ready or while a payment is in progress.
  */
 import { Button } from '@/components/ui/button'
-import { Loader2, CreditCard } from 'lucide-react'
+import { Loader2, CreditCard } from '@/components/icons'
 import { useRazorpayCheckout } from '@/lib/hooks/useRazorpayCheckout'
 
 interface RazorpayButtonProps {

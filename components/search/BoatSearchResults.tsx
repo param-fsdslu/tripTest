@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { BoatCard } from './BoatCard'
-import { Ship, SortAsc } from 'lucide-react'
+import { Ship, SortAsc } from '@/components/icons'
 
 interface BoatSearchResultsProps {
   boats: any[]

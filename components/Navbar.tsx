@@ -13,7 +13,7 @@ import {
   LogOut,
   ChevronRight,
   Heart,
-} from "lucide-react";
+} from "@/components/icons";
 import { Link, usePathname } from "@/i18n/routing";
 import { ACCOUNT_LINKS } from "@/components/account/account-links";
 import { getCurrentUser } from "@/lib/actions/session";
@@ -154,7 +154,7 @@ export function Navbar({ transparent = true }: NavbarProps) {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "relative px-3 py-2 text-[15px] font-medium rounded-md transition-colors duration-200",
+                  "relative px-3 py-2 text-[15px] font-medium rounded-full transition-colors duration-200",
                   active
                     ? solid
                       ? "text-primary"
@@ -251,7 +251,7 @@ export function Navbar({ transparent = true }: NavbarProps) {
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "h-10 rounded-lg px-4 font-medium text-[15px]",
+                    "h-10 rounded-full px-4 font-medium text-[15px]",
                     solid ? "text-foreground" : "text-white hover:bg-white/10 hover:text-white"
                   )}
                   onClick={() => openAuth({ intent: "login" })}
@@ -261,7 +261,7 @@ export function Navbar({ transparent = true }: NavbarProps) {
                 <Button
                   size="sm"
                   className={cn(
-                    "h-10 rounded-lg px-5 font-semibold text-[15px] shadow-none",
+                    "h-10 rounded-full px-5 font-semibold text-[15px] shadow-none",
                     solid
                       ? "bg-primary text-white hover:bg-primary-hover"
                       : "bg-white text-primary hover:bg-white/90"
@@ -336,7 +336,7 @@ export function Navbar({ transparent = true }: NavbarProps) {
                       href={link.href}
                       onClick={() => setMobileOpen(false)}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                        "flex items-center gap-3 px-3 py-2.5 rounded-full text-sm font-medium transition-colors",
                         active
                           ? "bg-primary/10 text-primary"
                           : "text-foreground/65 hover:bg-muted hover:text-foreground"
@@ -386,7 +386,7 @@ export function Navbar({ transparent = true }: NavbarProps) {
                       href={href}
                       onClick={() => setMobileOpen(false)}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                        "flex items-center gap-3 px-3 py-2.5 rounded-full text-sm font-medium transition-colors",
                         pathname === href
                           ? "bg-primary/10 text-primary"
                           : "text-foreground/65 hover:bg-muted hover:text-foreground"
@@ -401,7 +401,7 @@ export function Navbar({ transparent = true }: NavbarProps) {
                   <div className="my-3 border-t border-border/60" />
                   <button
                     onClick={() => { handleSignOut(); setMobileOpen(false); }}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/8 transition-colors w-full"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-full text-sm font-medium text-destructive hover:bg-destructive/8 transition-colors w-full"
                   >
                     <LogOut className="h-4.5 w-4.5 shrink-0" />
                     <span>Sign Out</span>
@@ -412,14 +412,14 @@ export function Navbar({ transparent = true }: NavbarProps) {
                   <button
                     type="button"
                     onClick={() => { setMobileOpen(false); openAuth({ intent: "login" }); }}
-                    className="flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground/65 hover:bg-muted hover:text-foreground transition-colors"
+                    className="flex w-full items-center gap-3 px-3 py-2.5 rounded-full text-sm font-medium text-foreground/65 hover:bg-muted hover:text-foreground transition-colors"
                   >
                     <LogIn className="h-4.5 w-4.5 shrink-0 text-muted-foreground" />
                     <span>Sign In</span>
                   </button>
                   <div className="px-1 pt-1">
                     <Button
-                      className="w-full font-semibold gap-2 rounded-xl bg-primary hover:bg-primary-hover"
+                      className="w-full font-semibold gap-2 rounded-full bg-primary hover:bg-primary-hover"
                       onClick={() => { setMobileOpen(false); openAuth({ intent: "signup" }); }}
                     >
                       <UserPlus className="h-4 w-4" />

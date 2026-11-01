@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Eye, Edit, Trash2, MoreVertical, CheckCircle, Clock, Archive, FileText, Plus } from 'lucide-react'
+import { Eye, Edit, Trash2, MoreVertical, CheckCircle, Clock, Archive, FileText, Plus, MapPin } from '@/components/icons'
 import { ExportButtons } from './ExportButtons'
 import type { ExportColumn } from '@/lib/utils/export'
 import { Button } from '@/components/ui/button'
@@ -34,6 +34,7 @@ interface Blog {
   title: string
   slug: string
   status: BlogStatus
+  city?: string | null
   view_count: number
   published_at: string | null
   created_at: string
@@ -104,6 +105,7 @@ export function BlogsTable({ blogs }: BlogsTableProps) {
   const exportColumns: ExportColumn[] = [
     { header: 'Title', accessor: 'title' },
     { header: 'Status', accessor: 'status' },
+    { header: 'City', accessor: (r: any) => r.city || '' },
     { header: 'Author', accessor: (r: any) => r.author?.email || 'Unknown' },
     { header: 'Views', accessor: 'view_count' },
     { header: 'Published At', accessor: (r: any) => r.published_at ? formatDate(r.published_at) : 'Not published' },
@@ -142,6 +144,9 @@ export function BlogsTable({ blogs }: BlogsTableProps) {
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  City
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Author
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -163,6 +168,16 @@ export function BlogsTable({ blogs }: BlogsTableProps) {
                     <div className="text-sm text-muted-foreground">/blog/{blog.slug}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(blog.status)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {blog.city ? (
+                      <span className="inline-flex items-center gap-1 text-foreground">
+                        <MapPin className="h-3.5 w-3.5 text-primary" />
+                        {blog.city}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">General</span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {blog.author?.email || 'Unknown'}
                   </td>

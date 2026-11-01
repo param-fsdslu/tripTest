@@ -1,6 +1,6 @@
 'use client'
 
-import { Star } from 'lucide-react'
+import { Star } from '@/components/icons'
 import { useState } from 'react'
 
 interface StarRatingProps {

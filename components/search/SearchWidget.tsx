@@ -20,7 +20,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, MapPin, Search, Car, Hotel, Bike, Ship, Minus, Plus, User, AlertCircle } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Search, Car, Hotel, Bike, Ship, Minus, Plus, User, AlertCircle } from "@/components/icons";
 import { useShallow } from "zustand/react/shallow";
 
 import { cn, getMaxBookableDate } from "@/lib/utils";
@@ -175,23 +175,23 @@ export function SearchWidget() {
           {/* Cabs Tab Content */}
           {isFeatureEnabled('cabs') && (
           <TabsContent value="cabs" className="mt-0">
-             <div className="grid grid-cols-1 md:grid-cols-12 gap-2 p-1 rounded-lg">
+             <div className="grid grid-cols-1 md:grid-cols-12 gap-2 p-1 rounded-full">
               <div className="md:col-span-3 relative">
                 <MapPin className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input placeholder="From" className="pl-10 sm:pl-12 h-12 sm:h-14 border border-border shadow-none text-sm sm:text-base font-medium focus-visible:ring-1 focus-visible:ring-primary rounded-lg" />
+                <Input placeholder="From" className="pl-10 sm:pl-12 h-12 sm:h-14 border border-border shadow-none text-sm sm:text-base font-medium focus-visible:ring-1 focus-visible:ring-primary rounded-full" />
               </div>
               <div className="md:col-span-3 relative">
                 <MapPin className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input placeholder="To" className="pl-10 sm:pl-12 h-12 sm:h-14 border border-border shadow-none text-sm sm:text-base font-medium focus-visible:ring-1 focus-visible:ring-primary rounded-lg" />
+                <Input placeholder="To" className="pl-10 sm:pl-12 h-12 sm:h-14 border border-border shadow-none text-sm sm:text-base font-medium focus-visible:ring-1 focus-visible:ring-primary rounded-full" />
               </div>
               <div className="md:col-span-4">
-                 <Button variant="outline" className="w-full justify-start h-12 sm:h-14 px-3 sm:px-4 text-sm sm:text-base font-medium text-muted-foreground hover:bg-muted/50 rounded-lg">
+                 <Button variant="outline" className="w-full justify-start h-12 sm:h-14 px-3 sm:px-4 text-sm sm:text-base font-medium text-muted-foreground hover:bg-muted/50 rounded-full">
                     <CalendarIcon className="mr-2 sm:mr-3 h-5 w-5" />
                     Pickup Date & Time
                  </Button>
               </div>
               <div className="md:col-span-2">
-                <Button className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold rounded-lg">
+                <Button className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold rounded-full">
                   Search
                 </Button>
               </div>
@@ -202,10 +202,10 @@ export function SearchWidget() {
           {/* Bikes Tab Content */}
           {isFeatureEnabled('bikes') && (
           <TabsContent value="bikes" className="mt-0">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 p-1 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 p-1 rounded-full">
                <div className="md:col-span-6">
                   <Select>
-                    <SelectTrigger className="h-12 sm:h-14 border border-border shadow-none text-sm sm:text-base font-medium focus:ring-1 focus:ring-primary px-3 sm:px-4 rounded-lg">
+                    <SelectTrigger className="h-12 sm:h-14 border border-border shadow-none text-sm sm:text-base font-medium focus:ring-1 focus:ring-primary px-3 sm:px-4 rounded-full">
                       <SelectValue placeholder="Select Bike Type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -216,13 +216,13 @@ export function SearchWidget() {
                   </Select>
                </div>
                <div className="md:col-span-4">
-                 <Button variant="outline" className="w-full justify-start h-12 sm:h-14 px-3 sm:px-4 text-sm sm:text-base font-medium text-muted-foreground hover:bg-muted/50 rounded-lg">
+                 <Button variant="outline" className="w-full justify-start h-12 sm:h-14 px-3 sm:px-4 text-sm sm:text-base font-medium text-muted-foreground hover:bg-muted/50 rounded-full">
                     <CalendarIcon className="mr-2 sm:mr-3 h-5 w-5" />
                     Pickup Date
                  </Button>
                </div>
                <div className="md:col-span-2">
-                <Button className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold rounded-lg">
+                <Button className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold rounded-full">
                   Search
                 </Button>
               </div>
@@ -233,14 +233,14 @@ export function SearchWidget() {
           {/* Boats Tab Content */}
           {isFeatureEnabled('boats') && (
           <TabsContent value="boats" className="mt-0">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 p-1 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 p-1 rounded-full">
                <div className="md:col-span-4 relative group">
                  <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
                    <MapPin className="h-5 w-5 sm:h-6 sm:w-6" />
                  </div>
                  <Input
                    placeholder="Departure location"
-                   className="pl-10 sm:pl-12 h-12 sm:h-14 border border-border shadow-none text-sm sm:text-base font-medium placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary hover:border-primary/50 rounded-lg transition-colors cursor-default"
+                   className="pl-10 sm:pl-12 h-12 sm:h-14 border border-border shadow-none text-sm sm:text-base font-medium placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary hover:border-primary/50 rounded-full transition-colors cursor-default"
                    value={location}
                    readOnly
                    title="More locations coming soon"
@@ -252,7 +252,7 @@ export function SearchWidget() {
                      <Button
                        variant="outline"
                        className={cn(
-                         "w-full justify-start text-left font-medium h-12 sm:h-14 shadow-none rounded-lg px-3 sm:px-4 bg-card hover:bg-muted/50 hover:text-foreground hover:border-primary/50 transition-colors",
+                         "w-full justify-start text-left font-medium h-12 sm:h-14 shadow-none rounded-full px-3 sm:px-4 bg-card hover:bg-muted/50 hover:text-foreground hover:border-primary/50 transition-colors",
                          !boatDate && "text-muted-foreground",
                          boatDateError && "border-destructive ring-1 ring-destructive"
                        )}
@@ -284,7 +284,7 @@ export function SearchWidget() {
                    <PopoverTrigger asChild>
                      <Button
                        variant="outline"
-                       className="w-full justify-start text-left font-medium h-12 sm:h-14 shadow-none rounded-lg px-3 sm:px-4 bg-card hover:bg-muted/50 hover:text-foreground hover:border-primary/50 transition-colors"
+                       className="w-full justify-start text-left font-medium h-12 sm:h-14 shadow-none rounded-full px-3 sm:px-4 bg-card hover:bg-muted/50 hover:text-foreground hover:border-primary/50 transition-colors"
                      >
                        <User className="mr-2 sm:mr-3 h-5 w-5 text-muted-foreground" />
                        <span className="truncate text-foreground/70 text-sm sm:text-base">
@@ -321,7 +321,7 @@ export function SearchWidget() {
                     params.set('passengers', (adults + children).toString());
                     router.push(`/boats?${params.toString()}`);
                   }}
-                  className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold rounded-lg shadow-sm transition-all active:scale-[0.98]"
+                  className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold rounded-full shadow-sm transition-all active:scale-[0.98]"
                 >
                   <Search className="mr-2 h-5 w-5 sm:hidden" />
                   Search

@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { format } from 'date-fns'
-import { Eye, ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
+import { Eye, ChevronLeft, ChevronRight, Search, X } from '@/components/icons'
 import { updateBookingStatus } from '@/lib/actions/admin'
 import { ExportButtons } from './ExportButtons'
 import { StatusPill } from './StatusPill'

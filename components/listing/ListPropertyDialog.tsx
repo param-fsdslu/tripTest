@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { MessageCircle } from 'lucide-react'
+import { MessageCircle } from '@/components/icons'
 
 const WHATSAPP_NUMBER = '919113887712'
 

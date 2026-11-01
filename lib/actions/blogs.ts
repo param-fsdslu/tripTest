@@ -10,11 +10,13 @@
  *
  * Status lifecycle: draft → published → archived.
  * published_at is set when status changes to 'published'.
+ * city: optional, the city the post is about (lib/utils/blog-city.ts).
  */
 import { createClient } from '@/lib/db/server'
 import { requireSuperAdmin } from '@/lib/utils/admin'
 import { revalidatePath } from 'next/cache'
 import { ADMIN_PATH } from '@/lib/config/admin-path'
+import { blogCities, cleanCity } from '@/lib/utils/blog-city'
 
 /** Blog lifecycle status. Once archived, a blog is hidden but not deleted. */
 export type BlogStatus = 'draft' | 'published' | 'archived'
@@ -33,6 +35,7 @@ export interface Blog {
   meta_title: string | null
   meta_description: string | null
   tags: string[] | null
+  city: string | null
   view_count: number
   created_at: string
   updated_at: string
@@ -194,6 +197,7 @@ export async function createBlog(data: {
   meta_title?: string
   meta_description?: string
   tags?: string[]
+  city?: string | null
 }) {
   try {
     await requireSuperAdmin()
@@ -223,6 +227,7 @@ export async function createBlog(data: {
         meta_title: data.meta_title || null,
         meta_description: data.meta_description || null,
         tags: data.tags || null,
+        city: cleanCity(data.city),
       })
       .select()
       .single()
@@ -262,6 +267,8 @@ export async function updateBlog(
     meta_title?: string
     meta_description?: string
     tags?: string[]
+    /** null clears it */
+    city?: string | null
   }
 ) {
   try {
@@ -280,6 +287,7 @@ export async function updateBlog(
     }
 
     const updateData: any = { ...data }
+    if (data.city !== undefined) updateData.city = cleanCity(data.city)
 
     // Generate new slug if title changed
     if (data.title && data.title !== currentBlog.title) {
@@ -423,6 +431,32 @@ export async function uploadBlogImage(formData: FormData) {
       success: false,
       error: error.message || 'Failed to upload image',
     }
+  }
+}
+
+/**
+ * City suggestions for the blog form: cities with hotels first (the names the search uses),
+ * then cities already given to posts
+ */
+export async function getBlogCityOptions(): Promise<string[]> {
+  try {
+    await requireSuperAdmin()
+    const db = await createClient()
+    const [{ data: hotels }, { data: blogs }] = await Promise.all([
+      db.from('hotels').select('city'),
+      db.from('blogs').select('city'),
+    ])
+    const names = [...blogCities(hotels ?? []), ...blogCities(blogs ?? [])].map((c) => c.name)
+    const seen = new Set<string>()
+    return names.filter((name) => {
+      const key = name.toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  } catch (error) {
+    console.error('Error fetching blog city options:', error)
+    return []
   }
 }
 

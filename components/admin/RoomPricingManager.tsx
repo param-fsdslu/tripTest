@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Plus, Trash2, CalendarRange, Pencil } from 'lucide-react'
+import { Loader2, Plus, Trash2, CalendarRange, Pencil } from '@/components/icons'
 import {
   setWeekendPricing,
   createPriceOverride,

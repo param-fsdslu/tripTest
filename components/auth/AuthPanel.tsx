@@ -12,7 +12,7 @@
 import { useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth'
 import { REGEXP_ONLY_DIGITS } from 'input-otp'
-import { Loader2, Mail } from 'lucide-react'
+import { Loader2, Mail } from '@/components/icons'
 import { FieldSeparator } from '@/components/ui/field'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
 import { Link } from '@/i18n/routing'

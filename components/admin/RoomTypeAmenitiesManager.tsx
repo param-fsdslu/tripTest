@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { getAllAmenities, addRoomTypeAmenity, removeRoomTypeAmenity } from '@/lib/actions/admin'
-import { Plus, X, Loader2 } from 'lucide-react'
+import { Plus, X, Loader2 } from '@/components/icons'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface Amenity {

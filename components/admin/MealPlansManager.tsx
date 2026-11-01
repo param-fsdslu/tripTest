@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Plus, Edit, Trash2, UtensilsCrossed, Loader2 } from 'lucide-react'
+import { Plus, Edit, Trash2, UtensilsCrossed, Loader2 } from '@/components/icons'
 import { createMealPlan, updateMealPlan, deleteMealPlan } from '@/lib/actions/admin'
 import type { MealPlan, MealType } from '@/lib/types'
 

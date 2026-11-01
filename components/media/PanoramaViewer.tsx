@@ -11,7 +11,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import NextImage, { getImageProps } from 'next/image'
-import { ImageOff, Loader2, Maximize2, Minimize2, Minus, Move, Plus } from 'lucide-react'
+import { ImageOff, Loader2, Maximize2, Minimize2, Minus, Move, Plus } from '@/components/icons'
 import { cn } from '@/lib/utils'
 
 /** A stored panorama URL served through the next/image optimizer: same-origin, so WebGL can read it */

@@ -34,7 +34,7 @@ import {
   Shield,
   Clock,
   Ship,
-} from 'lucide-react'
+} from '@/components/icons'
 import { format, addDays } from 'date-fns'
 import { cn, isValidPhone, getMaxBookableDate } from '@/lib/utils'
 

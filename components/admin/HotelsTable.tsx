@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Eye, ChevronLeft, ChevronRight, Star, Edit, Trash2 } from 'lucide-react'
+import { Eye, ChevronLeft, ChevronRight, Star, Edit, Trash2 } from '@/components/icons'
 import { updateHotelStatus, deleteHotel } from '@/lib/actions/admin'
 import { ExportButtons } from './ExportButtons'
 import type { ExportColumn } from '@/lib/utils/export'

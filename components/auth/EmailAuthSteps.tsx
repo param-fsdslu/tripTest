@@ -2,7 +2,7 @@
 
 /** Email login and email sign-up steps of the login panel */
 import { useActionState, useEffect, useRef } from 'react'
-import { MailCheck } from 'lucide-react'
+import { MailCheck } from '@/components/icons'
 import { Input } from '@/components/ui/input'
 import { Link } from '@/i18n/routing'
 import { signIn, signUp } from '@/lib/actions/auth'

@@ -9,6 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,48 +21,23 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Hotel as HotelIcon } from 'lucide-react'
-import { updateAdminUser, getAvailableHotels } from '@/lib/actions/users'
+import { UserPlus, Hotel as HotelIcon } from '@/components/icons'
+import { createAdminUser, getAvailableHotels } from '@/lib/actions/users'
 import { useRouter } from 'next/navigation'
-import type { AdminRole } from '@/lib/utils/roles'
 
-interface User {
-  id: string
-  email: string | undefined
-  role: AdminRole | 'admin'
-  hotelIds: string[]
-  hotels: Array<{ id: string; name: string; city: string }>
-}
-
-interface EditUserDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  user: User
-}
-
-export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps) {
+export function CreateVendorDialog() {
   const router = useRouter()
+  const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [hotels, setHotels] = useState<Array<{ id: string; name: string; city: string; state: string; owner_id: string | null }>>([])
 
   const [formData, setFormData] = useState({
-    email: user.email || '',
+    email: '',
     password: '',
-    role: (user.role === 'admin' ? 'super_admin' : user.role) as 'super_admin' | 'hotel_admin',
-    hotelIds: user.hotelIds || [],
+    role: 'hotel_admin' as 'super_admin' | 'hotel_admin',
+    hotelIds: [] as string[],
   })
-
-  // Reset form when user changes
-  useEffect(() => {
-    setFormData({
-      email: user.email || '',
-      password: '',
-      role: (user.role === 'admin' ? 'super_admin' : user.role) as 'super_admin' | 'hotel_admin',
-      hotelIds: user.hotelIds || [],
-    })
-    setError('')
-  }, [user])
 
   // Load hotels when dialog opens
   useEffect(() => {
@@ -82,29 +58,19 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
     setError('')
     setIsSubmitting(true)
 
-    const updateData: any = {
-      userId: user.id,
-      role: formData.role,
-      hotelIds: formData.hotelIds,
-    }
-
-    // Only include email if changed
-    if (formData.email !== user.email) {
-      updateData.email = formData.email
-    }
-
-    // Only include password if provided
-    if (formData.password) {
-      updateData.password = formData.password
-    }
-
-    const result = await updateAdminUser(updateData)
+    const result = await createAdminUser(formData)
 
     if (result.success) {
-      onOpenChange(false)
+      setOpen(false)
+      setFormData({
+        email: '',
+        password: '',
+        role: 'hotel_admin',
+        hotelIds: [],
+      })
       router.refresh()
     } else {
-      setError(result.error || 'Failed to update user')
+      setError(result.error || 'Failed to create user')
     }
 
     setIsSubmitting(false)
@@ -119,65 +85,71 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
     }))
   }
 
-  // Show hotels that are either unassigned or assigned to this user
-  const availableHotels = hotels.filter(
-    h => !h.owner_id || h.owner_id === user.id || formData.hotelIds.includes(h.id)
-  )
+  const availableHotels = hotels.filter(h => !h.owner_id || formData.hotelIds.includes(h.id))
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <UserPlus className="h-4 w-4 mr-2" />
+          Add Vendor
+        </Button>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[550px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Edit Admin User</DialogTitle>
+            <DialogTitle>Add Vendor</DialogTitle>
             <DialogDescription>
-              Update user information, role, and hotel assignments.
+              Create a panel sign-in and choose the role and hotel access.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-800 px-3 py-2 rounded-md text-sm">
-                {error}
+              <div className="bg-red-50 border border-red-200 text-red-800 px-3 py-2 rounded-md text-sm space-y-1">
+                <p className="font-semibold">Failed to create vendor</p>
+                <p>{error}</p>
               </div>
             )}
 
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="edit-email">Email</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="edit-email"
+                id="email"
                 type="email"
+                placeholder="admin@example.com"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
               />
             </div>
 
-            {/* Password (optional) */}
+            {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="edit-password">New Password (optional)</Label>
+              <Label htmlFor="password">Password</Label>
               <Input
-                id="edit-password"
+                id="password"
                 type="password"
-                placeholder="Leave blank to keep current password"
+                placeholder="Minimum 8 characters"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
                 minLength={8}
               />
               <p className="text-xs text-muted-foreground">
-                Leave blank to keep the current password
+                Must be at least 8 characters long
               </p>
             </div>
 
             {/* Role */}
             <div className="space-y-2">
-              <Label htmlFor="edit-role">Role</Label>
+              <Label htmlFor="role">Role</Label>
               <Select
                 value={formData.role}
                 onValueChange={(value: 'super_admin' | 'hotel_admin') => {
-                  setFormData({ ...formData, role: value, hotelIds: value === 'super_admin' ? [] : formData.hotelIds })
+                  setFormData({ ...formData, role: value, hotelIds: [] })
                 }}
               >
                 <SelectTrigger>
@@ -188,6 +160,11 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
                   <SelectItem value="hotel_admin">Hotel Admin (Limited Access)</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                {formData.role === 'super_admin'
+                  ? 'Full access to all hotels and system features'
+                  : 'Limited access to assigned hotels only'}
+              </p>
             </div>
 
             {/* Hotel Selection (only for hotel_admin) */}
@@ -204,14 +181,14 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
                       {availableHotels.map((hotel) => (
                         <div key={hotel.id} className="flex items-center space-x-3 p-3 hover:bg-muted/50">
                           <Checkbox
-                            id={`edit-hotel-${hotel.id}`}
+                            id={`hotel-${hotel.id}`}
                             checked={formData.hotelIds.includes(hotel.id)}
                             onCheckedChange={(checked) =>
                               handleHotelToggle(hotel.id, checked as boolean)
                             }
                           />
                           <label
-                            htmlFor={`edit-hotel-${hotel.id}`}
+                            htmlFor={`hotel-${hotel.id}`}
                             className="flex-1 cursor-pointer"
                           >
                             <div className="flex items-center gap-2">
@@ -220,8 +197,8 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
                                 <div className="text-sm font-medium">{hotel.name}</div>
                                 <div className="text-xs text-muted-foreground">
                                   {hotel.city}, {hotel.state}
-                                  {hotel.owner_id && hotel.owner_id !== user.id && (
-                                    <span className="ml-2 text-yellow-600">(Assigned to another admin)</span>
+                                  {hotel.owner_id && (
+                                    <span className="ml-2 text-yellow-600">(Currently assigned)</span>
                                   )}
                                 </div>
                               </div>
@@ -243,13 +220,13 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => setOpen(false)}
               disabled={isSubmitting}
             >
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Save Changes'}
+              {isSubmitting ? 'Creating...' : 'Create Vendor'}
             </Button>
           </DialogFooter>
         </form>

@@ -27,6 +27,7 @@ const STATUS_COLORS: Record<string, StatusColor> = {
   cancelled: RED,
   // payment
   paid: GREEN,
+  success: GREEN, // payments.status of a captured payment
   processing: AMBER,
   refund_requested: AMBER,
   refunded: GREY,

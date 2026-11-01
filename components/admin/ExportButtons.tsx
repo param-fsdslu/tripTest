@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Download, FileText } from 'lucide-react'
+import { Download, FileText } from '@/components/icons'
 import { exportToCSV, exportToPDF, type ExportColumn } from '@/lib/utils/export'
 
 interface ExportButtonsProps {

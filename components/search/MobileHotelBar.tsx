@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { SlidersHorizontal, X } from 'lucide-react'
+import { SlidersHorizontal, X } from '@/components/icons'
 import { HotelFilters } from './HotelFilters'
 import { HOTEL_SORT_OPTIONS, useHotelSort } from './HotelSortBar'
 

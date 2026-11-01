@@ -15,7 +15,7 @@ import {
   TrendingUp,
   Users,
   type LucideIcon,
-} from 'lucide-react'
+} from '@/components/icons'
 import { AdminPageHeader } from './AdminPageHeader'
 import { BookingCalendar, type CalendarLoader } from './BookingCalendar'
 import { StatCard, TONES, type StatTone } from './StatCard'

@@ -1,6 +1,6 @@
 'use client'
 
-import { Heart } from 'lucide-react'
+import { Heart } from '@/components/icons'
 import { useUser } from '@/lib/hooks/use-auth-query'
 import { useWishlist, useToggleWishlist } from '@/lib/hooks/use-wishlist'
 import { useUIStore } from '@/lib/stores/use-ui-store'

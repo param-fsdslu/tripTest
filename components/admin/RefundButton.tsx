@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { DollarSign, Loader2 } from 'lucide-react'
+import { DollarSign, Loader2 } from '@/components/icons'
 import {
   Dialog,
   DialogContent,

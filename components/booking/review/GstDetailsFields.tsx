@@ -6,7 +6,7 @@
  * GSTIN, registered company name and address; the form sends them only while it's ticked.
  * Validation matches the server (parseGstDetails in lib/utils.ts).
  */
-import { Building2 } from 'lucide-react'
+import { Building2 } from '@/components/icons'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

@@ -26,7 +26,7 @@ import {
   XCircle,
   Star,
   Loader2,
-} from 'lucide-react'
+} from '@/components/icons'
 import { format } from 'date-fns'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'

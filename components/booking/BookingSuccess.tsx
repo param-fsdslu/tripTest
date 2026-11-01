@@ -11,7 +11,7 @@
  */
 import type { ReactNode } from 'react'
 import Image from 'next/image'
-import { ArrowRight, Check, Download, Hotel, Mail, Smartphone } from 'lucide-react'
+import { ArrowRight, Check, Download, Hotel, Mail, Smartphone } from '@/components/icons'
 import { Link } from '@/i18n/routing'
 import { Button } from '@/components/ui/button'
 import { EFFECTIVE_GATEWAY_FEE_PERCENT, FREE_CANCELLATION_HOURS, freeCancellationDeadline } from '@/lib/config/cancellation-policy'
@@ -225,14 +225,14 @@ export function BookingSuccess({ booking, group }: { booking: any; group: any[] 
         {/* ── Actions ───────────────────────────────────────────────────── */}
         <div className={cn('mt-6 flex flex-col gap-3 sm:flex-row', enter, 'motion-safe:delay-[800ms]')}>
           {invoiceable.length === 1 && (
-            <Button asChild className="h-12 flex-1 rounded-xl font-bold">
+            <Button asChild className="h-12 flex-1 rounded-full font-bold">
               <a href={invoiceUrl(invoiceable[0].booking_reference)} download>
                 <Download className="h-4 w-4" />
                 Download invoice
               </a>
             </Button>
           )}
-          <Button asChild variant="outline" className="h-12 flex-1 rounded-xl font-semibold">
+          <Button asChild variant="outline" className="h-12 flex-1 rounded-full font-semibold">
             <Link href={manageHref}>{isGuestCheckout ? 'Sign in to manage' : 'View booking'}</Link>
           </Button>
         </div>

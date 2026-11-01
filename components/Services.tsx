@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Hotel, Car, Bike, Ship, ArrowRight } from "lucide-react";
+import { Hotel, Car, Bike, Ship, ArrowRight } from "@/components/icons";
 
 const services = [
   {

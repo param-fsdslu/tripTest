@@ -15,7 +15,7 @@ import {
   FieldLabel,
 } from '@/components/ui/field'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { AlertCircle, CheckCircle2, Loader2, KeyRound } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Loader2, KeyRound } from '@/components/icons'
 
 function SubmitButton() {
   const { pending } = useFormStatus()

@@ -2,7 +2,7 @@
 
 /** Small building blocks shared by the login panel steps */
 import { useState, type ComponentProps, type ReactNode } from 'react'
-import { AlertCircle, ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Eye, EyeOff, Loader2 } from '@/components/icons'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

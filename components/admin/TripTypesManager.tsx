@@ -14,7 +14,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog'
-import { Plus, Edit, Trash2, Clock, Users, IndianRupee, Loader2 } from 'lucide-react'
+import { Plus, Edit, Trash2, Clock, Users, IndianRupee, Loader2 } from '@/components/icons'
 import { createTripType, updateTripType, deleteTripType, createTimeSlot, deleteTimeSlot } from '@/lib/actions/boat-admin'
 
 interface TripTypesManagerProps {

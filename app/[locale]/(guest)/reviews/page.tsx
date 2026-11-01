@@ -2,7 +2,7 @@ import { createClient } from '@/lib/db/server'
 import { Navbar } from '@/components/Navbar'
 import { Footer } from '@/components/Footer'
 import { ReviewCard } from '@/components/reviews/ReviewCard'
-import { MessageSquare } from 'lucide-react'
+import { MessageSquare } from '@/components/icons'
 
 export const metadata = {
   title: 'Guest Reviews | Triplovia',

@@ -1,63 +1,70 @@
 'use client';
 
-import Image from 'next/image';
+/**
+ * "Travel stories": up to four published posts as photo cards, two to a row (BlogStoryCard). On
+ * the homepage it follows the city in the hero search box (useSearchStore.pickedCity, its default
+ * included): that city's posts with an "Explore <city>" button to /blog?city=…; when it has none,
+ * general posts (no city), never another city's; with neither, a "No stories about <city> yet" note.
+ * With a `city` prop (under /hotels results) it shows only that city's posts and nothing when there
+ * are none.
+ */
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Loader2, ArrowRight } from 'lucide-react';
-import { useRef, useEffect, useState } from 'react';
+import { Loader2, ArrowRight, MapPin } from '@/components/icons';
+import { useQuery } from '@tanstack/react-query';
 import { SectionHeader } from '@/components/layout/SectionHeader';
+import { BlogStoryCard, type BlogStory } from '@/components/blog/BlogStoryCard';
+import { useSearchStore } from '@/lib/stores/use-search-store';
+import { cityKey, cleanCity } from '@/lib/utils/blog-city';
 
-interface Blog {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string | null;
-  featured_image: string | null;
-  published_at: string | null;
-  view_count: number;
-  tags: string[] | null;
+const MAX_POSTS = 4;
+
+/** One city's posts, or with `general` the posts about no particular city */
+async function fetchFeaturedBlogs(filter: { city?: string | null; general?: boolean }): Promise<BlogStory[]> {
+  const params = new URLSearchParams({ limit: String(MAX_POSTS) });
+  if (filter.city) params.set('city', filter.city);
+  if (filter.general) params.set('general', '1');
+  const response = await fetch(`/api/blogs/featured?${params}`);
+  if (!response.ok) throw new Error('Failed to fetch blogs');
+  return response.json();
 }
 
-async function fetchFeaturedBlogs() {
-  try {
-    const response = await fetch('/api/blogs/featured');
-    if (!response.ok) throw new Error('Failed to fetch blogs');
-    return await response.json();
-  } catch {
-    return [];
-  }
+const STALE_MS = 1000 * 60 * 5;
+
+interface FeaturedBlogsProps {
+  /** Only this city's posts (nothing when it has none); without it, the city picked in the search box */
+  city?: string;
 }
 
-function formatDate(iso: string | null) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
+export function FeaturedBlogs({ city: fixedCity }: FeaturedBlogsProps = {}) {
+  const pickedCity = useSearchStore((s) => s.pickedCity);
+  const city = cleanCity(fixedCity ?? pickedCity);
+
+  const forCity = useQuery({
+    queryKey: ['blogs', 'featured', 'city', cityKey(city)],
+    queryFn: () => fetchFeaturedBlogs({ city }),
+    enabled: !!city,
+    staleTime: STALE_MS,
   });
-}
+  const general = useQuery({
+    queryKey: ['blogs', 'featured', 'general'],
+    queryFn: () => fetchFeaturedBlogs({ general: true }),
+    enabled: !fixedCity,
+    staleTime: STALE_MS,
+  });
 
-export function FeaturedBlogs() {
-  const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    fetchFeaturedBlogs().then((data) => {
-      setBlogs(data);
-      setIsLoading(false);
-    });
-  }, []);
-
-  const scroll = (dir: 'left' | 'right') => {
-    if (!scrollRef.current) return;
-    const amount = 340;
-    scrollRef.current.scrollBy({
-      left: dir === 'left' ? -amount : amount,
-      behavior: 'smooth',
-    });
-  };
+  const cityPosts = forCity.data ?? [];
+  const showCity = cityPosts.length > 0;
+  const blogs = (showCity ? cityPosts : fixedCity ? [] : general.data ?? []).slice(0, MAX_POSTS);
+  // The posts' own spelling of the city ("Honnavar" for a typed "honnavar")
+  const cityName = showCity ? cityPosts[0].city || city : city;
+  // Wait for the city's posts first (no flash of other posts), then the general ones when it has none
+  const isLoading = (!!city && forCity.isLoading) || (!showCity && !fixedCity && general.isLoading);
+  // Homepage, a city in the search box, and nothing to show for it
+  const noStories = !fixedCity && !!city && blogs.length === 0;
 
   if (isLoading) {
+    // Under search results, stay out of the way until there is something to show
+    if (fixedCity) return null;
     return (
       <section className="py-12 sm:py-16 bg-[var(--background)]">
         <div className="page-container flex justify-center py-16">
@@ -67,152 +74,57 @@ export function FeaturedBlogs() {
     );
   }
 
-  if (!blogs || blogs.length === 0) return null;
+  if (noStories) {
+    return (
+      <section className="py-12 sm:py-16 bg-[var(--background)]">
+        <div className="page-container">
+          <SectionHeader eyebrow="From the journal" title={`Travel stories from ${city}`} />
+          <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-10 text-center">
+            <MapPin className="mx-auto mb-3 h-6 w-6 text-primary/50" />
+            <p className="font-semibold text-foreground">No stories about {city} yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">Pick another place in the search, or</p>
+            <Link
+              href="/blog"
+              className="group mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-hover"
+            >
+              Browse all stories
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (blogs.length === 0) return null;
 
   return (
-    <section className="py-12 sm:py-16 bg-[var(--background)] overflow-hidden">
+    <section className="py-12 sm:py-16 bg-[var(--background)]">
       <div className="page-container">
-
-        {/* ── Section header ──────────────────────────────── */}
         <SectionHeader
           eyebrow="From the journal"
-          title="Travel stories"
+          title={showCity ? `Travel stories from ${cityName}` : 'Travel stories'}
           action={
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:flex gap-1.5">
-                {(['left', 'right'] as const).map((dir) => (
-                  <button
-                    key={dir}
-                    onClick={() => scroll(dir)}
-                    className="h-9 w-9 rounded-full border border-border bg-card flex items-center justify-center
-                               text-foreground hover:border-primary hover:text-primary transition-colors"
-                    aria-label={dir === 'left' ? 'Scroll left' : 'Scroll right'}
-                  >
-                    {dir === 'left' ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  </button>
-                ))}
-              </div>
-              <Link
-                href="/blog"
-                className="group inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-hover"
-              >
-                View all
+            // The city's own Journal page (/blog?city=…), or all stories
+            <Link
+              href={showCity && cityName ? `/blog?city=${encodeURIComponent(cityName)}` : '/blog'}
+              className="group inline-flex items-center gap-3 rounded-full border border-border bg-card py-1.5 pl-5 pr-1.5
+                         text-sm font-semibold text-foreground shadow-[0_1px_3px_rgba(7,63,61,0.06)] transition-colors
+                         hover:border-primary/40 hover:text-primary"
+            >
+              {showCity && cityName ? `Explore ${cityName}` : 'View all stories'}
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors group-hover:bg-primary-hover">
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-            </div>
+              </span>
+            </Link>
           }
         />
 
-        {/* ── Scrolling card row ───────────────────────────── */}
-        <div
-          ref={scrollRef}
-          className="flex gap-4 sm:gap-5 overflow-x-auto scrollbar-hide pb-2 snap-x-mandatory -mx-4 px-4"
-        >
+        {/* Two photo cards to a row */}
+        <div className="grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2">
           {blogs.map((blog) => (
-            <Link
-              key={blog.id}
-              href={`/blog/${blog.slug}`}
-              className="block group shrink-0 w-[270px] sm:w-[300px] lg:w-[320px] snap-start
-                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-2xl"
-            >
-              <article
-                className="h-full rounded-2xl overflow-hidden bg-card border border-border
-                           hover:shadow-[0_16px_40px_-16px_rgba(7,63,61,0.28)]
-                           transition-shadow duration-300"
-              >
-                {/* Image */}
-                <div className="relative aspect-[3/2] overflow-hidden bg-muted">
-                  {blog.featured_image ? (
-                    <Image
-                      src={blog.featured_image}
-                      alt={blog.title}
-                      fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                      sizes="(max-width: 640px) 270px, (max-width: 1024px) 300px, 320px"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/12 to-gold/12 flex items-center justify-center">
-                      <span
-                        className="text-primary/50 text-sm font-semibold"
-                        style={{ fontFamily: "var(--font-heading)" }}
-                      >
-                        Story
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Date pill overlay */}
-                  {blog.published_at && (
-                    <div className="absolute bottom-2.5 left-2.5 z-10">
-                      <span className="inline-flex items-center rounded-full bg-black/45 backdrop-blur-sm
-                                       text-white text-[10px] font-medium px-2.5 py-1 leading-none">
-                        {formatDate(blog.published_at)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Content */}
-                <div className="p-4">
-                  {/* Tags */}
-                  {blog.tags && blog.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-2.5">
-                      {blog.tags.slice(0, 2).map((tag) => (
-                        <span
-                          key={tag}
-                          className="inline-flex items-center rounded-full px-2.5 py-0.5
-                                     text-[10px] font-semibold uppercase tracking-wide
-                                     bg-primary/8 text-primary"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Title */}
-                  <h3
-                    className="text-[0.95rem] font-bold leading-snug line-clamp-2 mb-2
-                               text-foreground group-hover:text-primary transition-colors"
-                    style={{ fontFamily: "var(--font-heading)" }}
-                  >
-                    {blog.title}
-                  </h3>
-
-                  {/* Excerpt */}
-                  {blog.excerpt && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                      {blog.excerpt}
-                    </p>
-                  )}
-
-                  {/* Footer: read link */}
-                  <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-border/60">
-                    <span className="text-xs text-muted-foreground">
-                      {blog.view_count || 0} views
-                    </span>
-                    <span
-                      className="text-xs font-semibold text-primary flex items-center gap-1
-                                 group-hover:text-gold transition-colors"
-                    >
-                      Read more
-                      <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-                    </span>
-                  </div>
-                </div>
-              </article>
-            </Link>
+            <BlogStoryCard key={blog.id} blog={blog} />
           ))}
-        </div>
-
-        {/* View all — mobile */}
-        <div className="mt-6 text-center sm:hidden">
-          <Link
-            href="/blog"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary"
-          >
-            View all posts <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
         </div>
       </div>
     </section>

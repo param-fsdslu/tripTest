@@ -6,6 +6,7 @@
  * avg_rating and starting_price are computed fields derived from joined tables.
  */
 import { createClient } from '@/lib/db/server';
+import { sameCity } from '@/lib/utils/blog-city';
 import type {
   Hotel,
   HotelWithDetails,
@@ -513,6 +514,21 @@ export class HotelService {
       places: [...places.values()].sort((a, b) => b.stays - a.stays || a.name.localeCompare(b.name)),
       stays: stays.sort((a, b) => a.name.localeCompare(b.name)),
     };
+  }
+
+  /**
+   * Active stays in a city (names compared like blog cities) and the hotels' spelling of it
+   * ("Honnavar" for "honnavar"): the blog pages' "Explore stays in <city>"
+   */
+  static async staysInCity(city: string): Promise<{ city: string; stays: number }> {
+    const db = await createClient();
+    const { data, error } = await db.from('hotels').select('city').eq('status', 'active');
+    if (error) {
+      console.error('Error counting stays in city:', error);
+      return { city, stays: 0 };
+    }
+    const matches = (data || []).filter((hotel: any) => sameCity(hotel.city, city));
+    return { city: matches[0]?.city ?? city, stays: matches.length };
   }
 
   /**

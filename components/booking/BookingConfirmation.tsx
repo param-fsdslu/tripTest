@@ -39,7 +39,7 @@ import {
   XCircle,
   RefreshCcw,
   Building2,
-} from 'lucide-react'
+} from '@/components/icons'
 import { format } from 'date-fns'
 import { getBookingByReference } from '@/lib/actions/bookings'
 import { invoiceUrl, isInvoiceable } from '@/lib/utils/invoice'

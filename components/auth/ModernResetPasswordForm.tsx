@@ -14,7 +14,7 @@ import {
   FieldLabel,
 } from '@/components/ui/field'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { AlertCircle, Info, Loader2, ShieldCheck } from 'lucide-react'
+import { AlertCircle, Info, Loader2, ShieldCheck } from '@/components/icons'
 import { Link } from '@/i18n/routing'
 
 function SubmitButton() {

@@ -59,7 +59,7 @@ export function PhoneNumberInput({
   return (
     <div
       className={cn(
-        'flex h-12 items-center rounded-lg border border-input bg-card shadow-xs transition-[color,box-shadow,border-color]',
+        'flex h-12 items-center rounded-full border border-input bg-card shadow-xs transition-[color,box-shadow,border-color]',
         'hover:border-primary/50 focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/15',
         disabled && 'pointer-events-none opacity-60',
         className
@@ -68,7 +68,7 @@ export function PhoneNumberInput({
       <Select value={countryCode} onValueChange={setCountryCode} disabled={disabled}>
         <SelectTrigger
           aria-label={`Country code, ${country.label}`}
-          className="h-full shrink-0 gap-1.5 rounded-l-lg rounded-r-none border-0 bg-transparent pl-3 pr-2 font-semibold tabular-nums text-foreground shadow-none focus-visible:ring-0 [&>svg]:text-primary! [&>svg]:opacity-100!"
+          className="h-full shrink-0 gap-1.5 rounded-l-full rounded-r-none pl-4 border-0 bg-transparent pl-3 pr-2 font-semibold tabular-nums text-foreground shadow-none focus-visible:ring-0 [&>svg]:text-primary! [&>svg]:opacity-100!"
         >
           <SelectValue>
             <CountryFlag iso={country.iso} />
@@ -97,7 +97,7 @@ export function PhoneNumberInput({
         required={required}
         autoFocus={autoFocus}
         disabled={disabled}
-        className="h-full w-0 min-w-0 flex-1 rounded-r-lg bg-transparent pl-1 pr-3 text-base tracking-wide outline-none placeholder:tracking-normal placeholder:text-muted-foreground"
+        className="h-full w-0 min-w-0 flex-1 rounded-r-full bg-transparent pl-1 pr-4 text-base tracking-wide outline-none placeholder:tracking-normal placeholder:text-muted-foreground"
       />
       {name && <input type="hidden" name={name} value={e164 ?? ''} />}
     </div>

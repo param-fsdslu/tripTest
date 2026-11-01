@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/db/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { RefundsTable } from '@/components/admin/RefundsTable'
-import { DollarSign, TrendingDown, Clock, CheckCircle } from 'lucide-react'
+import { DollarSign, TrendingDown, Clock, CheckCircle } from '@/components/icons'
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
 import { StatCard } from '@/components/admin/StatCard'
 

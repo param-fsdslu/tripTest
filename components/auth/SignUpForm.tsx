@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { AlertCircle, CheckCircle2, Mail, Lock, Loader2, Check, X } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Mail, Lock, Loader2, Check, X } from '@/components/icons'
 import { Progress } from '@/components/ui/progress'
 
 function SubmitButton() {

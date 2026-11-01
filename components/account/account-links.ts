@@ -1,4 +1,4 @@
-import { CalendarCheck, Heart, UserCircle, type LucideIcon } from 'lucide-react'
+import { CalendarCheck, Heart, UserCircle, type LucideIcon } from '@/components/icons'
 
 export interface AccountLink {
   href: string

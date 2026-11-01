@@ -22,7 +22,7 @@ import {
   Anchor,
   Waves,
   Calendar,
-} from 'lucide-react'
+} from '@/components/icons'
 
 const getAmenityIcon = (iconName?: string) => {
   const iconMap: Record<string, any> = {

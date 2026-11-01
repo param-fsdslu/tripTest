@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select'
 import { getPaymentDetails, updatePaymentStatus } from '@/lib/actions/admin'
 import { formatCurrency } from '@/lib/utils'
-import { Loader2, Calendar, CreditCard, User, Hotel, BedDouble, DollarSign } from 'lucide-react'
+import { Loader2, Calendar, CreditCard, User, Hotel, BedDouble, DollarSign } from '@/components/icons'
 import { RefundButton } from './RefundButton'
 
 interface PaymentDetailsDialogProps {

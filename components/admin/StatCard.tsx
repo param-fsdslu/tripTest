@@ -1,6 +1,6 @@
 /** A figure on an admin page: tinted icon, label, value and an optional hint */
 import type { ReactNode } from 'react'
-import type { LucideIcon } from 'lucide-react'
+import type { LucideIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
 
 /** Icon tile colours per tone (also used by other admin figure layouts) */

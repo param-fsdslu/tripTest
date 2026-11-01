@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { Ship, Sailboat, Anchor, X } from 'lucide-react'
+import { Ship, Sailboat, Anchor, X } from '@/components/icons'
 
 interface BoatFiltersProps {
   selectedBoatTypes: string[]

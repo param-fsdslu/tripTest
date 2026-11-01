@@ -34,7 +34,7 @@ import {
   TreePalm,
   User,
   Users,
-} from 'lucide-react'
+} from '@/components/icons'
 import { useShallow } from 'zustand/react/shallow'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -249,9 +249,10 @@ export function HotelSearchBox({ initial, keepFilters = false, compact = false }
       isGuestOpen: s.isGuestOpen,
     }))
   )
-  const { setDateRange, setAdults, setChildren, setRooms, setPets, setIsGuestOpen, hydrateFromParams } = useSearchStore(
+  const { setDateRange, setAdults, setChildren, setRooms, setPets, setIsGuestOpen, hydrateFromParams, setPickedCity } = useSearchStore(
     useShallow((s) => ({
       hydrateFromParams: s.hydrateFromParams,
+      setPickedCity: s.setPickedCity,
       setDateRange: s.setDateRange,
       setAdults: s.setAdults,
       setChildren: s.setChildren,
@@ -264,6 +265,11 @@ export function HotelSearchBox({ initial, keepFilters = false, compact = false }
   const [destination, setDestination] = useState<Destination>(() =>
     initial?.location ? { name: initial.location, region: '' } : DEFAULT_DESTINATION
   )
+  // The destination shown (the default until the guest picks one) is the city the homepage travel stories follow
+  const destinationName = destination.name
+  useEffect(() => {
+    setPickedCity(destinationName)
+  }, [destinationName, setPickedCity])
   // The /hotels box follows the URL when a new search changes it
   const initialLocation = initial?.location
   useEffect(() => {

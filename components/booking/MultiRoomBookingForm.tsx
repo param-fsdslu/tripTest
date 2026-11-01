@@ -44,7 +44,7 @@ import {
   User, Mail, Phone, Users, Baby,
   BedDouble, AlertCircle, CheckCircle2, Loader2,
   UtensilsCrossed, Info, Minus, Plus,
-} from 'lucide-react'
+} from '@/components/icons'
 import { format, differenceInDays } from 'date-fns'
 import { cn, getRoomGstRate, isValidPhone, SERVICE_CHARGE_RATE, GST_ON_SERVICE_CHARGE_RATE, MEAL_GST_RATE, calculateExtraBedCharge, calculateRoomStayPricing, type PriceRuleInput } from '@/lib/utils'
 import type { MealPlan, MealType } from '@/lib/types'
@@ -767,7 +767,7 @@ export function MultiRoomBookingForm({
                   type="submit"
                   form="multi-booking-form"
                   size="lg"
-                  className="h-12 w-full rounded-xl text-base font-bold"
+                  className="h-12 w-full rounded-full text-base font-bold"
                   disabled={isSubmitting || !checkInDate || !checkOutDate || !termsAccepted}
                 >
                   {isSubmitting ? (

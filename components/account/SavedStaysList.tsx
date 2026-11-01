@@ -9,7 +9,7 @@
 import { useState, useTransition } from 'react'
 import Image from 'next/image'
 import { format } from 'date-fns'
-import { ArrowRight, BedDouble, Calendar, Hotel, MapPin, Trash2 } from 'lucide-react'
+import { ArrowRight, BedDouble, Calendar, Hotel, MapPin, Trash2 } from '@/components/icons'
 import { Link } from '@/i18n/routing'
 import { Button } from '@/components/ui/button'
 import { removeSavedStay, type SavedStaySummary } from '@/lib/actions/saved-stays'

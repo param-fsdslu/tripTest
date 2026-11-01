@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { createHotel, updateHotel } from '@/lib/actions/admin'
-import { Loader2 } from 'lucide-react'
+import { Loader2 } from '@/components/icons'
 import { ADMIN_PATH } from '@/lib/config/admin-path'
 import { LocationFields } from './LocationFields'
 

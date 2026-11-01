@@ -3,6 +3,11 @@ import { create } from 'zustand'
 // Separate state shape from actions for clarity
 interface SearchStateData {
   location: string
+  /**
+   * The destination shown in the hotel search box (its default until the guest picks one; null
+   * where there is no search box). The homepage travel stories follow it (FeaturedBlogs).
+   */
+  pickedCity: string | null
   checkIn: Date | undefined
   checkOut: Date | undefined
   adults: number
@@ -17,6 +22,7 @@ interface SearchStateData {
 
 interface SearchActions {
   setLocation: (location: string) => void
+  setPickedCity: (city: string | null) => void
   setCheckIn: (date: Date | undefined) => void
   setCheckOut: (date: Date | undefined) => void
   setDateRange: (checkIn: Date | undefined, checkOut: Date | undefined) => void
@@ -35,6 +41,7 @@ export type SearchState = SearchStateData & SearchActions
 
 const initialState: SearchStateData = {
   location: 'Honnavar',
+  pickedCity: null,
   checkIn: undefined,
   checkOut: undefined,
   adults: 2,
@@ -50,6 +57,7 @@ export const useSearchStore = create<SearchState>()((set) => ({
   ...initialState,
 
   setLocation: (location) => set({ location }),
+  setPickedCity: (pickedCity) => set({ pickedCity }),
   setCheckIn: (checkIn) => set({ checkIn }),
   setCheckOut: (checkOut) => set({ checkOut }),
   setDateRange: (checkIn, checkOut) => set({ checkIn, checkOut }),

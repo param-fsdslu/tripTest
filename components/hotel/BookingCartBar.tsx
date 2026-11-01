@@ -5,7 +5,7 @@
  * added to the booking. It updates as rooms are added, re-counted or removed; the summary jumps
  * back to the rooms list, the button goes to checkout.
  */
-import { ArrowRight, BedDouble, CloudCheck, X } from 'lucide-react'
+import { ArrowRight, BedDouble, CloudCheck, X } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { formatCurrency, getInclusivePrice } from '@/lib/utils'
 
@@ -111,7 +111,7 @@ export function BookingCartBar({ rooms, cart, staySummary, savedToAccount, onEdi
           <Button type="button" variant="ghost" onClick={onClear} className="hidden text-muted-foreground lg:inline-flex">
             Clear
           </Button>
-          <Button type="button" onClick={onCheckout} className="h-11 gap-2 rounded-xl px-5 font-bold sm:px-6">
+          <Button type="button" onClick={onCheckout} className="h-11 gap-2 rounded-full px-5 font-bold sm:px-6">
             <span className="sm:hidden">Book now</span>
             <span className="hidden sm:inline">Proceed to checkout</span>
             <ArrowRight className="h-4 w-4" />

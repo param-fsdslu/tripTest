@@ -25,8 +25,9 @@ import {
   Ship,
   Anchor,
   Star,
+  Store,
   type LucideIcon,
-} from 'lucide-react'
+} from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import type { AdminRole } from '@/lib/utils/roles'
 import { isFeatureEnabled, type FeatureName } from '@/lib/config/features'
@@ -78,8 +79,9 @@ const NAV_GROUPS: { label: string; items: AdminNavItem[] }[] = [
   {
     label: 'System',
     items: [
-      // Only super admins manage users
+      // Only super admins see website users and manage vendors (panel accounts)
       { name: 'Users', href: `${ADMIN_PATH}/users`, icon: Users, roles: ['super_admin'] },
+      { name: 'Vendors', href: `${ADMIN_PATH}/vendors`, icon: Store, roles: ['super_admin'] },
       { name: 'Settings', href: `${ADMIN_PATH}/settings`, icon: Settings, roles: BOTH },
     ],
   },
@@ -141,7 +143,7 @@ export function AdminNav({ email, role, roleDisplayName, hotelIds, open, onClose
             type="button"
             onClick={onClose}
             aria-label="Toggle menu"
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
+            className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
           >
             <X className="h-5 w-5" />
           </button>
@@ -165,7 +167,7 @@ export function AdminNav({ email, role, roleDisplayName, hotelIds, open, onClose
                       onClick={onClose}
                       aria-current={isActive ? 'page' : undefined}
                       className={cn(
-                        'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                        'group relative flex items-center gap-3 rounded-full px-3 py-2 text-sm transition-colors',
                         isActive
                           ? 'bg-mint font-semibold text-primary'
                           : 'font-medium text-foreground/75 hover:bg-muted hover:text-foreground'

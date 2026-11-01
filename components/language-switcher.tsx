@@ -24,7 +24,7 @@ export function LanguageSwitcher() {
         <button
           key={lang.code}
           onClick={() => handleLanguageChange(lang.code)}
-          className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+          className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
             locale === lang.code
               ? 'bg-foreground text-background'
               : 'bg-transparent hover:bg-black/[.05] dark:hover:bg-white/[.06]'

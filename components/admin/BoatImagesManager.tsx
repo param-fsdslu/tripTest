@@ -10,7 +10,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { uploadBoatImage, deleteBoatImage } from '@/lib/actions/boat-admin'
-import { Plus, Trash2, Image as ImageIcon, Upload } from 'lucide-react'
+import { Plus, Trash2, Image as ImageIcon, Upload } from '@/components/icons'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface BoatImagesManagerProps {

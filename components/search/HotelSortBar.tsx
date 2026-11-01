@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowDownNarrowWide, ArrowDownWideNarrow, Flame } from 'lucide-react'
+import { ArrowDownNarrowWide, ArrowDownWideNarrow, Flame } from '@/components/icons'
 import { cn } from '@/lib/utils'
 
 /** Quick sorts on /hotels. `popularity` is the default (see the sort in hotels/page.tsx). */
@@ -31,7 +31,7 @@ export function HotelSortBar({ sortBy }: { sortBy: string }) {
     <div
       role="group"
       aria-label="Sort stays"
-      className="flex items-center gap-1 rounded-xl border border-border bg-card p-1.5"
+      className="flex items-center gap-1 rounded-full border border-border bg-card p-1.5"
     >
       <span className="shrink-0 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         Sort by
@@ -45,7 +45,7 @@ export function HotelSortBar({ sortBy }: { sortBy: string }) {
             aria-pressed={active}
             onClick={() => !active && setSort(value)}
             className={cn(
-              'flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+              'flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium transition-colors',
               active
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-foreground hover:bg-mint hover:text-primary'

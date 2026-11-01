@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { checkIsSuperAdmin } from '@/lib/utils/admin'
 import { BlogForm } from '@/components/admin/BlogForm'
+import { getBlogCityOptions } from '@/lib/actions/blogs'
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
 import { ADMIN_PATH } from '@/lib/config/admin-path'
 
@@ -16,6 +17,8 @@ export default async function NewBlogPage() {
     redirect(ADMIN_PATH)
   }
 
+  const cityOptions = await getBlogCityOptions()
+
   return (
     <div className="space-y-6">
       <AdminPageHeader
@@ -26,7 +29,7 @@ export default async function NewBlogPage() {
       />
 
       {/* Blog Form */}
-      <BlogForm />
+      <BlogForm cityOptions={cityOptions} />
     </div>
   )
 }

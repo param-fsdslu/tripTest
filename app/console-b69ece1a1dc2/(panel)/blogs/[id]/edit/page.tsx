@@ -1,6 +1,6 @@
 import { redirect, notFound } from 'next/navigation'
 import { checkIsSuperAdmin } from '@/lib/utils/admin'
-import { getBlogById } from '@/lib/actions/blogs'
+import { getBlogById, getBlogCityOptions } from '@/lib/actions/blogs'
 import { BlogForm } from '@/components/admin/BlogForm'
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
 import { ADMIN_PATH } from '@/lib/config/admin-path'
@@ -21,7 +21,7 @@ export default async function EditBlogPage({ params }: { params: Promise<{ id: s
   const { id } = await params
 
   // Get blog data
-  const { blog, error } = await getBlogById(id)
+  const [{ blog, error }, cityOptions] = await Promise.all([getBlogById(id), getBlogCityOptions()])
 
   if (error || !blog) {
     notFound()
@@ -37,7 +37,7 @@ export default async function EditBlogPage({ params }: { params: Promise<{ id: s
       />
 
       {/* Blog Form */}
-      <BlogForm blog={blog} />
+      <BlogForm blog={blog} cityOptions={cityOptions} />
     </div>
   )
 }

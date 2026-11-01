@@ -104,6 +104,8 @@ export const TABLES: Record<string, TableDef> = {
       meta_title: { type: 'text' },
       meta_description: { type: 'text' },
       tags: { type: 'text[]' },
+      // The city the post is about (same names as hotels.city); null for a general post
+      city: { type: 'text' },
       view_count: { type: 'int', default: 0 },
       created_at: { type: 'timestamptz', default: { fn: 'now' } },
       updated_at: { type: 'timestamptz', default: { fn: 'now' } },

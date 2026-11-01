@@ -35,8 +35,8 @@ import {
   Flower2,
   Banknote,
   CheckCircle2,
-} from 'lucide-react';
-import type { LucideProps } from 'lucide-react';
+} from '@/components/icons';
+import type { LucideProps } from '@/components/icons';
 import type { FC } from 'react';
 
 type LucideIcon = FC<LucideProps>;

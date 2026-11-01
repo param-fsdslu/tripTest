@@ -29,7 +29,7 @@ import {
   WifiOff,
   CalendarOff,
   AlertTriangle,
-} from 'lucide-react'
+} from '@/components/icons'
 import {
   updateInventorySource,
   createRoomInventoryBlock,

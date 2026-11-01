@@ -145,7 +145,7 @@ export async function createAdminUser(data: {
       }
     }
 
-    revalidatePath(`${ADMIN_PATH}/users`)
+    revalidatePath(`${ADMIN_PATH}/vendors`)
 
     return {
       success: true,
@@ -250,7 +250,7 @@ export async function updateAdminUser(data: {
       }
     }
 
-    revalidatePath(`${ADMIN_PATH}/users`)
+    revalidatePath(`${ADMIN_PATH}/vendors`)
 
     return {
       success: true,
@@ -300,7 +300,7 @@ export async function deleteAdminUser(userId: string) {
       throw new Error(error.message)
     }
 
-    revalidatePath(`${ADMIN_PATH}/users`)
+    revalidatePath(`${ADMIN_PATH}/vendors`)
 
     return {
       success: true,

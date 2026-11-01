@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarIcon, MessageCircle } from 'lucide-react'
+import { CalendarIcon, MessageCircle } from '@/components/icons'
 import { cn } from '@/lib/utils'
 
 const WHATSAPP_NUMBER = '919113887712'

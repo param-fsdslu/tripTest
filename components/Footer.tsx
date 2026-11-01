@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { Mail, MapPin, Phone } from 'lucide-react'
+import { Mail, MapPin, Phone } from '@/components/icons'
 import { isFeatureEnabled } from '@/lib/config/features'
 import { ListPropertyButton } from '@/components/listing/ListPropertyButton'
 import { PackageEnquiryButton } from '@/components/packages/PackageEnquiryButton'
@@ -21,6 +21,7 @@ const exploreLinks = [
   { href: '/blog', label: 'Travel blog', show: isFeatureEnabled('blogs') },
   { href: '/reviews', label: 'Guest reviews', show: true },
   { href: '/about', label: 'About us', show: true },
+  { href: '/contact', label: 'Contact us', show: true },
 ].filter((l) => l.show)
 
 const legalLinks = [
@@ -30,6 +31,9 @@ const legalLinks = [
 ]
 
 const linkClass = 'text-sm text-white/65 transition-colors hover:text-white'
+
+/** Contact icons (solid, like every icon from components/icons) in gold */
+const solidIcon = 'h-[18px] w-[18px] shrink-0 text-gold'
 
 export function Footer() {
   return (
@@ -100,18 +104,18 @@ export function Footer() {
             <ul className="space-y-3">
               <li>
                 <a href="mailto:triplovia@gmail.com" className={`${linkClass} inline-flex items-center gap-2.5`}>
-                  <Mail className="h-4 w-4 shrink-0 text-gold" />
+                  <Mail className={solidIcon} />
                   triplovia@gmail.com
                 </a>
               </li>
               <li>
                 <a href="tel:+919113887712" className={`${linkClass} inline-flex items-center gap-2.5`}>
-                  <Phone className="h-4 w-4 shrink-0 text-gold" />
+                  <Phone className={solidIcon} />
                   +91 91138 87712
                 </a>
               </li>
               <li className="flex gap-2.5 text-sm leading-relaxed text-white/65">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                <MapPin className={`mt-0.5 ${solidIcon}`} />
                 <span>
                   First floor, 612, Honnavar Areangadi Road, Near BSNL Office, Hosakuli, Uttarakannada,
                   Karnataka &ndash; 581334

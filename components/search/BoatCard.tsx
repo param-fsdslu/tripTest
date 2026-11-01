@@ -5,7 +5,7 @@ import { Link } from '@/i18n/routing'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Star, MapPin, Ship, ChevronRight, Clock, Users } from 'lucide-react'
+import { Star, MapPin, Ship, ChevronRight, Clock, Users } from '@/components/icons'
 
 interface BoatCardProps {
   boat: {

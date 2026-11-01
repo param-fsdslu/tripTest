@@ -1,7 +1,8 @@
+import Link from 'next/link'
 import { getBookingDetails } from '@/lib/actions/admin'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { User, Hotel as HotelIcon, Calendar, DollarSign, CreditCard, Mail, Phone, MapPin, Bed, Users, PawPrint, UtensilsCrossed, Building2, Download } from 'lucide-react'
+import { User, Hotel as HotelIcon, Calendar, DollarSign, CreditCard, Mail, Phone, MapPin, Bed, Users, PawPrint, UtensilsCrossed, Building2, Download } from '@/components/icons'
 import { invoiceUrl, isInvoiceable } from '@/lib/utils/invoice'
 import { format } from 'date-fns'
 import { redirect } from 'next/navigation'
@@ -119,6 +120,14 @@ export default async function AdminBookingDetailPage({
                 <p className="text-xs font-mono text-muted-foreground">
                   {booking.user_id}
                 </p>
+                {superAdmin && (
+                  <Link
+                    href={`${ADMIN_PATH}/users/${encodeURIComponent(booking.user_id)}`}
+                    className="mt-1 inline-block text-sm font-medium text-primary hover:underline"
+                  >
+                    View user profile
+                  </Link>
+                )}
               </div>
             )}
           </CardContent>

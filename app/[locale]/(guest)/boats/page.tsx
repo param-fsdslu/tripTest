@@ -4,7 +4,7 @@ import { Footer } from '@/components/Footer'
 import { BoatFilters } from '@/components/search/BoatFilters'
 import { BoatSearchResults } from '@/components/search/BoatSearchResults'
 import { createClient } from '@/lib/db/server'
-import { Loader2 } from 'lucide-react'
+import { Loader2 } from '@/components/icons'
 
 interface SearchParams {
   searchParams: Promise<{

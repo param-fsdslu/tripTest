@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { getAllAmenities } from '@/lib/actions/admin'
 import { addBoatAmenity, removeBoatAmenity } from '@/lib/actions/boat-admin'
-import { Plus, X, Loader2 } from 'lucide-react'
+import { Plus, X, Loader2 } from '@/components/icons'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface BoatAmenitiesManagerProps {

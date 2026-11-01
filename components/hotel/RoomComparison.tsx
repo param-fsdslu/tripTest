@@ -26,7 +26,7 @@ import {
   ShoppingCart,
   Minus,
   Plus,
-} from 'lucide-react';
+} from '@/components/icons';
 import {
   Tooltip,
   TooltipContent,

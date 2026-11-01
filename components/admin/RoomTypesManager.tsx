@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Plus, Edit, Trash2, Image as ImageIcon, Users } from 'lucide-react'
+import { Plus, Edit, Trash2, Image as ImageIcon, Users } from '@/components/icons'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { deleteRoomType } from '@/lib/actions/admin'
 import { RoomTypeForm } from './RoomTypeForm'

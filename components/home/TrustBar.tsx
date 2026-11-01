@@ -1,4 +1,4 @@
-import { BadgeCheck, CalendarX2, Headset, ShieldCheck } from 'lucide-react'
+import { BadgeCheck, CalendarX2, Headset, ShieldCheck } from '@/components/icons'
 import { FREE_CANCELLATION_HOURS } from '@/lib/config/cancellation-policy'
 
 const POINTS = [

@@ -9,7 +9,7 @@
 import type { ReactNode } from 'react'
 import Image from 'next/image'
 import { addDays, differenceInCalendarDays, format, startOfDay } from 'date-fns'
-import { CalendarDays, Hotel, MapPin, Star, Users } from 'lucide-react'
+import { CalendarDays, Hotel, MapPin, Star, Users } from '@/components/icons'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn, getMaxBookableDate } from '@/lib/utils'

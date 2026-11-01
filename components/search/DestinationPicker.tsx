@@ -8,7 +8,7 @@
  * (the results page matches city, district, state and hotel name). Arrow keys move through the list.
  */
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Hotel, Loader2, MapPin, Search } from 'lucide-react'
+import { Hotel, Loader2, MapPin, Search } from '@/components/icons'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useDestinationIndex } from '@/lib/hooks/use-hotels'
 import type { DestinationPlace } from '@/lib/types'

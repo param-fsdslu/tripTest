@@ -7,7 +7,9 @@ import { HotelSearchResults } from '@/components/search/HotelSearchResults'
 import { MobileHotelBar } from '@/components/search/MobileHotelBar'
 import { createClient } from '@/lib/db/server'
 import { hotelLocationFilter } from '@/lib/utils/india-locations'
-import { Loader2 } from 'lucide-react'
+import { Loader2 } from '@/components/icons'
+import { FeaturedBlogs } from '@/components/FeaturedBlogs'
+import { isFeatureEnabled } from '@/lib/config/features'
 
 interface SearchParams {
   searchParams: Promise<{
@@ -277,6 +279,8 @@ export default async function HotelsPage({ searchParams }: SearchParams) {
           </main>
         </div>
       </div>
+      {/* Travel stories about the searched city (nothing when it has none) */}
+      {params.location && isFeatureEnabled('blogs') && <FeaturedBlogs city={params.location} />}
       <Footer />
     </div>
   )

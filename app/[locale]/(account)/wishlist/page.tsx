@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { getWishlistHotels } from '@/lib/actions/wishlists'
 import { HotelCard } from '@/components/search/HotelCard'
 import { Link } from '@/i18n/routing'
-import { Heart, Hotel, ArrowRight } from 'lucide-react'
+import { Heart, Hotel, ArrowRight } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 
 export default async function WishlistPage() {

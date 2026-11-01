@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { PaymentsContent } from '@/components/admin/PaymentsContent'
-import { Loader2 } from 'lucide-react'
+import { Loader2 } from '@/components/icons'
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
 
 export default function AdminPaymentsPage() {

@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { format } from 'date-fns'
-import { Eye, Check, X, Loader2, ExternalLink, Copy } from 'lucide-react'
+import { Eye, Check, X, Loader2, ExternalLink, Copy } from '@/components/icons'
 import { ExportButtons } from './ExportButtons'
 import type { ExportColumn } from '@/lib/utils/export'
 import {

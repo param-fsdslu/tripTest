@@ -8,7 +8,7 @@
  */
 import { useEffect, useState, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
-import { Menu, Shield } from 'lucide-react'
+import { Menu, Shield } from '@/components/icons'
 import type { AdminRole } from '@/lib/utils/roles'
 import { cn } from '@/lib/utils'
 import { AdminNav, isNavItemActive, visibleNavGroups } from './AdminNav'
@@ -73,7 +73,7 @@ export function AdminShell({ email, role, roleDisplayName, hotelIds, children }:
             type="button"
             onClick={() => setIsSidebarOpen(true)}
             aria-label="Toggle menu"
-            className="-ml-1 rounded-lg p-2 text-foreground hover:bg-muted lg:hidden"
+            className="-ml-1 rounded-full p-2 text-foreground hover:bg-muted lg:hidden"
           >
             <Menu className="h-5 w-5" />
           </button>

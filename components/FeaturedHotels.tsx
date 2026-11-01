@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight } from '@/components/icons';
 import { Link } from '@/i18n/routing';
 import { SectionHeader } from '@/components/layout/SectionHeader';
 import { ExploreStaysCard, FeaturedStayCard, type FeaturedStay } from '@/components/home/FeaturedStayCard';
