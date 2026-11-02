@@ -3,6 +3,7 @@ import { Hero } from "@/components/Hero";
 import { TrustBar } from "@/components/home/TrustBar";
 import { FeaturedHotels } from "@/components/FeaturedHotels";
 import { FeaturedBlogs } from "@/components/FeaturedBlogs";
+import { TripIdeas } from "@/components/home/TripIdeas";
 import { ListPropertyCta } from "@/components/home/ListPropertyCta";
 import { isFeatureEnabled } from "@/lib/config/features";
 import { Footer } from "@/components/Footer";
@@ -15,6 +16,7 @@ export default function Home() {
         <Hero />
         <TrustBar />
         {isFeatureEnabled('hotels') && <FeaturedHotels />}
+        {isFeatureEnabled('hotels') && <TripIdeas />}
         {isFeatureEnabled('blogs') && <FeaturedBlogs />}
         <ListPropertyCta />
       </main>

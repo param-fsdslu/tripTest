@@ -1,27 +1,43 @@
 /**
- * Photos for the homepage hero slideshow, shown in this order. Images must be local (/public)
- * or from a host allowed in next.config.ts. Use wide landscape shots (at least 1920px wide).
+ * Slides for the homepage hero, shown in this order: each photo comes with its own copy, and
+ * the two change together. Images must be local (/public) or from a host allowed in
+ * next.config.ts; use wide landscape shots (at least 1920px wide). Keep claims accurate:
+ * cancellation copy must come from the cancellation policy config.
  */
+import { FREE_CANCELLATION_HOURS } from '@/lib/config/cancellation-policy'
+
 export interface HeroSlide {
   image: string
   alt: string
+  title: string
+  text: string
 }
+
+const unsplash = (id: string) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=2400&q=80`
 
 export const HERO_SLIDES: HeroSlide[] = [
   {
-    image: '/images/hero-background.png',
-    alt: 'Coastline of Honnavar, Karnataka',
+    image: unsplash('photo-1540541338287-41700207dee6'),
+    alt: 'Resort infinity pool among palm trees, looking out to the sea',
+    title: 'Your coastal escape starts here',
+    text: 'Pool-side resorts, villas and homestays along the Honnavar coast, handpicked and ready to book.',
   },
   {
-    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2400&q=80',
-    alt: 'Sunrise over a quiet sandy beach',
+    image: unsplash('photo-1473116763249-2faaef81ccda'),
+    alt: 'Waves rolling onto a sandy beach at sunset',
+    title: 'Chase sunsets on the Arabian Sea',
+    text: 'Stay close to the quiet beaches and backwaters of Honnavar and coastal Karnataka.',
   },
   {
-    image: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=2400&q=80',
-    alt: 'Houseboat on palm-lined backwaters',
+    image: unsplash('photo-1611892440504-42a792e24d32'),
+    alt: 'Warmly lit hotel room with wooden panels and a garden view',
+    title: 'Rooms that feel like home',
+    text: "Real photos, prices per night and what's included, all shown before you book.",
   },
   {
-    image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=2400&q=80',
-    alt: 'Resort pool among palm trees and hills',
+    image: unsplash('photo-1582719508461-905c673771fd'),
+    alt: 'Wooden sun deck with loungers and umbrellas by the sea',
+    title: 'Secure checkout, flexible plans',
+    text: `Pay with UPI, cards or net banking, and cancel up to ${FREE_CANCELLATION_HOURS} hours before check-in for a refund, minus the gateway fee.`,
   },
 ]

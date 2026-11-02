@@ -78,7 +78,7 @@ export function FeaturedBlogs({ city: fixedCity }: FeaturedBlogsProps = {}) {
     return (
       <section className="py-12 sm:py-16 bg-[var(--background)]">
         <div className="page-container">
-          <SectionHeader eyebrow="From the journal" title={`Travel stories from ${city}`} />
+          <SectionHeader title={`Travel stories from ${city}`} />
           <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-10 text-center">
             <MapPin className="mx-auto mb-3 h-6 w-6 text-primary/50" />
             <p className="font-semibold text-foreground">No stories about {city} yet</p>
@@ -102,7 +102,6 @@ export function FeaturedBlogs({ city: fixedCity }: FeaturedBlogsProps = {}) {
     <section className="py-12 sm:py-16 bg-[var(--background)]">
       <div className="page-container">
         <SectionHeader
-          eyebrow="From the journal"
           title={showCity ? `Travel stories from ${cityName}` : 'Travel stories'}
           action={
             // The city's own Journal page (/blog?city=…), or all stories

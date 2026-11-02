@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/db/server'
 import { Navbar } from '@/components/Navbar'
 import { Footer } from '@/components/Footer'
-import { CalendarDays, Eye, ArrowLeft, ArrowRight, MapPin, Clock } from '@/components/icons'
+import { CalendarDays, ArrowLeft, ArrowRight, MapPin, Clock } from '@/components/icons'
 import Link from 'next/link'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
@@ -69,7 +69,6 @@ export default async function BlogPostPage({
     countView(blog),
   ])
   const minutes = readingMinutes(blog.content || '')
-  const tags: string[] = (blog.tags || []).filter((tag: string) => tag.toLowerCase() !== blog.city?.toLowerCase())
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -93,37 +92,29 @@ export default async function BlogPostPage({
           <div className="page-container flex min-h-[420px] flex-col pb-10 pt-6 sm:min-h-[480px] sm:pb-12 lg:min-h-[540px]">
             <Link
               href="/blog"
-              className="group inline-flex w-fit items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-semibold
-                         text-white backdrop-blur-sm transition-colors hover:bg-white/25"
+              aria-label="Back to Journal"
+              title="Back to Journal"
+              className="group flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25"
             >
-              <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
-              Journal
+              <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-0.5" />
             </Link>
 
             <div className="mt-auto max-w-3xl pt-16">
-              <div className="mb-4 flex flex-wrap items-center gap-2">
-                {blog.city && (
-                  <Link
-                    href={`/blog?city=${encodeURIComponent(blog.city)}`}
-                    className="inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-foreground
-                               transition-colors hover:bg-white"
-                  >
-                    <MapPin className="h-3.5 w-3.5 text-primary" />
-                    {blog.city}
-                  </Link>
-                )}
-                {tags.length > 0 && (
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold">
-                    {tags.join(' · ')}
-                  </span>
-                )}
-              </div>
-
               <h1 className="text-3xl font-bold leading-[1.1] tracking-tight text-white sm:text-4xl lg:text-5xl">
                 {blog.title}
               </h1>
 
+              {/* City (links to its stories), date and reading time on one line */}
               <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/80">
+                {blog.city && (
+                  <Link
+                    href={`/blog?city=${encodeURIComponent(blog.city)}`}
+                    className="flex items-center gap-1.5 transition-colors hover:text-gold"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    {blog.city}
+                  </Link>
+                )}
                 {blog.published_at && (
                   <span className="flex items-center gap-1.5">
                     <CalendarDays className="h-4 w-4" />
@@ -133,10 +124,6 @@ export default async function BlogPostPage({
                 <span className="flex items-center gap-1.5">
                   <Clock className="h-4 w-4" />
                   {minutes} min read
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Eye className="h-4 w-4" />
-                  {(blog.view_count || 0) + 1} views
                 </span>
               </div>
             </div>

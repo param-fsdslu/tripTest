@@ -2,10 +2,9 @@
 
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import Image from 'next/image';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -219,39 +218,6 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
           </p>
         </div>
       )}
-
-      {/* Price Range Overview */}
-      <Card className="bg-linear-to-r from-mint to-background border-border">
-        <CardContent className="p-3">
-          <div className="flex items-center justify-between">
-            <div className="text-center flex-1">
-              <p className="text-xs text-muted-foreground mb-1">Starting from</p>
-              <p className="text-2xl font-bold text-primary">
-                ₹{getInclusivePrice(Math.min(...rooms.map(getDisplayPrice))).toLocaleString('en-IN')}
-              </p>
-              <p className="text-[10px] text-muted-foreground">per night, incl. taxes</p>
-            </div>
-            <Separator orientation="vertical" className="h-12" />
-            <div className="text-center flex-1">
-              <p className="text-xs text-muted-foreground mb-1">Average</p>
-              <p className="text-xl font-semibold text-foreground">
-                ₹{getInclusivePrice(Math.round(
-                  rooms.reduce((sum, r) => sum + getDisplayPrice(r), 0) / rooms.length
-                )).toLocaleString('en-IN')}
-              </p>
-              <p className="text-[10px] text-muted-foreground">per night, incl. taxes</p>
-            </div>
-            <Separator orientation="vertical" className="h-12" />
-            <div className="text-center flex-1">
-              <p className="text-xs text-muted-foreground mb-1">Up to</p>
-              <p className="text-xl font-semibold text-foreground">
-                ₹{getInclusivePrice(Math.max(...rooms.map(getDisplayPrice))).toLocaleString('en-IN')}
-              </p>
-              <p className="text-[10px] text-muted-foreground">per night, incl. taxes</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Room Cards */}
       <div className="space-y-4">

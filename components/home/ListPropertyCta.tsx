@@ -20,7 +20,6 @@ export function ListPropertyCta() {
 
           <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
             <div className="max-w-2xl">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-gold">For property owners</p>
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
                 List your property with Triplovia
               </h2>

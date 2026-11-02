@@ -190,7 +190,6 @@ export default async function HotelsPage({ searchParams }: SearchParams) {
           className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-primary/40 blur-3xl"
         />
         <div className="relative page-container py-5 sm:py-7">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-gold">Hotels &amp; homestays</p>
           <h1 className="mb-4 text-xl sm:text-2xl font-bold tracking-tight text-white">Find your perfect stay</h1>
           {/* Homepage hero search, minus price and stay type (the filters below cover those) */}
           <div className="rounded-2xl border border-border bg-white p-2 sm:p-2.5 shadow-[0_18px_48px_-24px_rgba(7,63,61,0.45)]">

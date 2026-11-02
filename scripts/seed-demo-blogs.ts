@@ -9,12 +9,11 @@
  *   npm run seed:blogs -- --dry-run   check the posts against an in-memory store; writes and uploads nothing
  *
  * The posts are published, so they show on the live site (homepage stories, /blog). The photos
- * are illustrative stock shots (the homepage hero coastline and Unsplash images the site already
- * uses): swap in real photos of each place, or remove the posts, before relying on them.
+ * are illustrative stock shots (the Honnavar coastline in scripts/assets and Unsplash images):
+ * swap in real photos of each place, or remove the posts, before relying on them.
  */
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import sharp from 'sharp'
 import { DbClient } from '../lib/db/client'
 import { FirestoreStore } from '../lib/db/firestore-store'
 import { MemoryStore, type DocStore } from '../lib/db/store'
@@ -28,7 +27,7 @@ const DRY_RUN = args.has('--dry-run')
 const REMOVE = args.has('--remove')
 
 const FOLDER = 'blog-images'
-const unsplash = (id: string) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1600&q=80`
+const unsplash = (id: string) => `https://images.unsplash.com/${id}?fm=jpg&fit=crop&w=1600&q=80`
 
 interface SamplePost {
   /** Fixed, so re-running updates the same documents instead of adding copies */
@@ -55,7 +54,7 @@ const POSTS: SamplePost[] = [
     tags: ['Honnavar', 'Guide'],
     excerpt:
       'Where the Sharavathi river meets the Arabian Sea: quiet beaches, backwater boat rides and waterfalls, all within an easy drive of Honnavar.',
-    photo: 'public/images/hero-background.png',
+    photo: 'scripts/assets/honnavar-coast.jpg', // public/images/hero-background.png at 1600px
     photoPath: 'samples/honnavar-travel-guide.jpg',
     daysAgo: 1,
     content: `
@@ -168,17 +167,16 @@ function must<T>(result: DbResponse<T>, label: string): T {
   return result.data
 }
 
-/** The photo as a JPEG at most 1600px wide (the hero PNG is ~12 MB) */
+/**
+ * The photo's bytes, already a JPEG at most 1600px wide: Unsplash resizes by URL, and local files
+ * are kept that size in scripts/assets. No image library, so the script needs no extra dependency
+ * (the Next build type-checks scripts too, and pnpm doesn't hoist next's optional sharp).
+ */
 async function loadPhoto(source: string): Promise<Buffer> {
-  let input: Buffer
-  if (source.startsWith('https://')) {
-    const res = await fetch(source)
-    if (!res.ok) throw new Error(`Could not download ${source} (${res.status})`)
-    input = Buffer.from(await res.arrayBuffer())
-  } else {
-    input = await readFile(path.join(process.cwd(), source))
-  }
-  return sharp(input).resize({ width: 1600, withoutEnlargement: true }).jpeg({ quality: 80, mozjpeg: true }).toBuffer()
+  if (!source.startsWith('https://')) return readFile(path.join(process.cwd(), source))
+  const res = await fetch(source)
+  if (!res.ok) throw new Error(`Could not download ${source} (${res.status})`)
+  return Buffer.from(await res.arrayBuffer())
 }
 
 /** Uploads to blog-images/<path> where the admin panel's uploads go, and returns the public URL */

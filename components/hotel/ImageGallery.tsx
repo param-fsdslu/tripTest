@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { ChevronLeft, ChevronRight, X, Grid3x3, ZoomIn, ZoomOut } from '@/components/icons';
+import { Grid3x3 } from '@/components/icons';
 import { Button } from '@/components/ui/button';
+import { PhotoLightbox } from '@/components/media/PhotoLightbox';
 import { cn } from '@/lib/utils';
 
 interface HotelImage {
@@ -25,8 +25,6 @@ interface ImageGalleryProps {
 export function ImageGallery({ images, hotelName, className }: ImageGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
-  const [isZoomed, setIsZoomed] = useState(false);
-  const [imageLoading, setImageLoading] = useState(true);
 
   const sortedImages = [...images].sort((a, b) => {
     if (a.is_primary) return -1;
@@ -44,48 +42,6 @@ export function ImageGallery({ images, hotelName, className }: ImageGalleryProps
   const gridLayout =
     count <= 1 ? '' : count === 2 ? 'md:grid-cols-2' : count === 3 ? 'md:grid-cols-3 md:grid-rows-2' : 'md:grid-cols-4 md:grid-rows-2';
   const mainSpan = count >= 3 ? 'md:col-span-2 md:row-span-2' : '';
-
-  const handlePrevious = () => {
-    setImageLoading(true);
-    setIsZoomed(false);
-    setSelectedIndex((prev) =>
-      prev === 0 ? sortedImages.length - 1 : prev - 1
-    );
-  };
-
-  const handleNext = () => {
-    setImageLoading(true);
-    setIsZoomed(false);
-    setSelectedIndex((prev) =>
-      prev === sortedImages.length - 1 ? 0 : prev + 1
-    );
-  };
-
-  const handleThumbnailClick = (index: number) => {
-    if (index !== selectedIndex) {
-      setImageLoading(true);
-      setIsZoomed(false);
-    }
-    setSelectedIndex(index);
-  };
-
-  // Keyboard navigation
-  useEffect(() => {
-    if (!isGalleryOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') {
-        handlePrevious();
-      } else if (e.key === 'ArrowRight') {
-        handleNext();
-      } else if (e.key === 'Escape') {
-        setIsGalleryOpen(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isGalleryOpen, selectedIndex]);
 
   return (
     <>
@@ -178,138 +134,20 @@ export function ImageGallery({ images, hotelName, className }: ImageGalleryProps
         </Button>
       </div>
 
-      {/* Fullscreen Gallery Dialog */}
-      <Dialog open={isGalleryOpen} onOpenChange={setIsGalleryOpen}>
-        <DialogContent className="max-w-full w-screen h-screen p-0 border-0 rounded-none">
-          <div className="relative w-full h-full flex flex-col bg-gradient-to-br from-gray-900 via-black to-gray-900">
-            {/* Top Bar */}
-            <div className="absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/80 to-transparent p-4">
-              <div className="flex items-center justify-between max-w-7xl mx-auto">
-                {/* Image Counter & Title */}
-                <div className="flex items-center gap-4">
-                  <div className="bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm font-medium border border-white/20">
-                    {selectedIndex + 1} / {sortedImages.length}
-                  </div>
-                  {sortedImages[selectedIndex]?.alt_text && (
-                    <p className="text-white/90 text-sm font-medium hidden md:block">
-                      {sortedImages[selectedIndex].alt_text}
-                    </p>
-                  )}
-                </div>
-
-                {/* Controls */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-white hover:bg-white/20 backdrop-blur-sm rounded-full"
-                    onClick={() => setIsZoomed(!isZoomed)}
-                    title={isZoomed ? 'Zoom out' : 'Zoom in'}
-                  >
-                    {isZoomed ? <ZoomOut className="w-5 h-5" /> : <ZoomIn className="w-5 h-5" />}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-white hover:bg-white/20 backdrop-blur-sm rounded-full"
-                    onClick={() => setIsGalleryOpen(false)}
-                    title="Close (ESC)"
-                  >
-                    <X className="w-5 h-5" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Main Image Container */}
-            <div className="flex-1 flex items-center justify-center px-4 md:px-16 py-20">
-              <div className="relative w-full h-full max-w-6xl">
-                {imageLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-                  </div>
-                )}
-                {sortedImages[selectedIndex] && (
-                  <div className={`relative w-full h-full transition-transform duration-300 ${
-                    isZoomed ? 'scale-150 cursor-zoom-out' : 'cursor-zoom-in'
-                  }`}
-                    onClick={() => setIsZoomed(!isZoomed)}
-                  >
-                    <Image
-                      src={sortedImages[selectedIndex].image_url}
-                      alt={sortedImages[selectedIndex].alt_text || `${hotelName} - Image ${selectedIndex + 1}`}
-                      fill
-                      className={`object-contain transition-opacity duration-300 ${
-                        imageLoading ? 'opacity-0' : 'opacity-100'
-                      }`}
-                      onLoad={() => setImageLoading(false)}
-                      priority
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Navigation Buttons */}
-            {sortedImages.length > 1 && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 backdrop-blur-sm w-14 h-14 rounded-full border border-white/20 shadow-xl transition-all hover:scale-110"
-                  onClick={handlePrevious}
-                  title="Previous (←)"
-                >
-                  <ChevronLeft className="w-8 h-8" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 backdrop-blur-sm w-14 h-14 rounded-full border border-white/20 shadow-xl transition-all hover:scale-110"
-                  onClick={handleNext}
-                  title="Next (→)"
-                >
-                  <ChevronRight className="w-8 h-8" />
-                </Button>
-              </>
-            )}
-
-            {/* Thumbnail Strip */}
-            <div className="absolute bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black/90 to-transparent backdrop-blur-sm p-4 md:p-6">
-              <div className="max-w-6xl mx-auto">
-                <div className="flex gap-3 overflow-x-auto pb-2 px-2 scrollbar-thin scrollbar-thumb-white/30 scrollbar-track-transparent hover:scrollbar-thumb-white/50">
-                  {sortedImages.map((image, index) => (
-                    <button
-                      key={image.id}
-                      className={`relative flex-shrink-0 w-20 h-20 md:w-24 md:h-24 rounded-lg overflow-hidden transition-all duration-300 ${
-                        index === selectedIndex
-                          ? 'ring-4 ring-white shadow-2xl scale-110'
-                          : 'ring-2 ring-white/20 hover:ring-white/50 hover:scale-105 opacity-60 hover:opacity-100'
-                      }`}
-                      onClick={() => handleThumbnailClick(index)}
-                    >
-                      <Image
-                        src={image.image_url}
-                        alt={image.alt_text || `Thumbnail ${index + 1}`}
-                        fill
-                        className="object-cover"
-                      />
-                      {index === selectedIndex && (
-                        <div className="absolute inset-0 bg-white/20" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Keyboard Hints (visible on desktop) */}
-            <div className="hidden md:block absolute bottom-32 left-1/2 -translate-x-1/2 text-white/50 text-xs text-center">
-              <p>Use ← → arrow keys to navigate • ESC to close • Click image to zoom</p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Full-screen viewer */}
+      <PhotoLightbox
+        photos={sortedImages.map((image, i) => ({
+          id: image.id,
+          src: image.image_url,
+          alt: image.alt_text || `${hotelName} - photo ${i + 1}`,
+          caption: image.alt_text,
+        }))}
+        open={isGalleryOpen}
+        onOpenChange={setIsGalleryOpen}
+        index={selectedIndex}
+        onIndexChange={setSelectedIndex}
+        title={hotelName}
+      />
     </>
   );
 }

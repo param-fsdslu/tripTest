@@ -23,7 +23,6 @@ export function FeaturedHotels() {
     <section className="py-12 sm:py-16">
       <div className="page-container">
         <SectionHeader
-          eyebrow="Where to stay"
           title="Featured stays"
           description="Hotels and homestays on the Honnavar coast, with prices that include taxes and fees."
           action={

@@ -1,21 +1,23 @@
 import { BadgeCheck, CalendarX2, Headset, ShieldCheck } from '@/components/icons'
 import { FREE_CANCELLATION_HOURS } from '@/lib/config/cancellation-policy'
+import { PhoneBookingPromo } from '@/components/home/PhoneBookingPromo'
 
+// Keep each text about two lines long so the cells stay even
 const POINTS = [
   {
     icon: BadgeCheck,
     title: 'Curated stays',
-    text: 'Hotels and homestays selected along the Honnavar coast.',
+    text: 'Hotels and homestays picked along the Honnavar coast.',
   },
   {
     icon: ShieldCheck,
     title: 'Secure payments',
-    text: 'Pay safely with UPI, cards and net banking via Razorpay.',
+    text: 'UPI, cards and net banking, secured by Razorpay.',
   },
   {
     icon: CalendarX2,
     title: 'Flexible cancellation',
-    text: `Cancel up to ${FREE_CANCELLATION_HOURS} hours before check-in for a refund, minus the gateway fee.`,
+    text: `Refund until ${FREE_CANCELLATION_HOURS}h before check-in, minus the gateway fee.`,
   },
   {
     icon: Headset,
@@ -24,23 +26,30 @@ const POINTS = [
   },
 ]
 
-/** Four reasons to book with Triplovia, shown under the hero search */
+/**
+ * Four reasons to book with Triplovia under the hero search, as one white strip of equal cells with
+ * hairline dividers (the border colour shows through a 1px grid gap), then the book-on-your-phone promo.
+ */
 export function TrustBar() {
   return (
-    <section className="py-12 sm:py-16">
+    <section className="pb-12 pt-10 sm:pb-16 sm:pt-12">
       <div className="page-container">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-[0_1px_3px_rgba(7,63,61,0.06)] sm:grid-cols-2 lg:grid-cols-4">
           {POINTS.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-mint text-primary">
+            <div key={title} className="flex items-center gap-3.5 bg-card p-5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-mint text-primary">
                 <Icon className="h-5 w-5" />
               </div>
-              <div>
-                <h3 className="text-base font-bold text-foreground">{title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{text}</p>
+              <div className="min-w-0">
+                <h3 className="text-[15px] font-bold leading-tight text-foreground">{title}</h3>
+                <p className="mt-1 text-[13px] leading-snug text-muted-foreground">{text}</p>
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="mt-8 sm:mt-10">
+          <PhoneBookingPromo />
         </div>
       </div>
     </section>
