@@ -72,6 +72,8 @@ export interface Hotel {
   latitude?: number;
   longitude?: number;
   maps_embed_url?: string;
+  /** Nearby places & connectivity, nearest first (lib/utils/nearby-places.ts) */
+  nearby_places?: Array<{ type: string; name: string; distance_km: number }>;
   location_rating?: number;
   phone?: string;
   email?: string;
@@ -170,6 +172,8 @@ export interface RoomType {
   standard_occupancy: number;
   /** Per-night charge for each guest beyond standard_occupancy, up to max_occupancy. */
   extra_bed_price: number;
+  /** Per-night charge for every child aged 6–11; unset = extra_bed_price, 0 = free. */
+  child_price?: number | null;
   bed_configuration?: string;
   base_price: number;
   num_available_rooms: number;

@@ -40,6 +40,8 @@ export function RoomTypeForm({
     max_children: roomType?.max_children || 0,
     standard_occupancy: roomType?.standard_occupancy ?? 2,
     extra_bed_price: roomType?.extra_bed_price ?? 0,
+    // Empty = children pay the extra-bed price (as before child prices existed)
+    child_price: roomType?.child_price ?? '',
     bed_configuration: roomType?.bed_configuration || '',
     size_sqm: roomType?.size_sqm || '',
     num_available_rooms: roomType?.num_available_rooms || 1,
@@ -65,6 +67,7 @@ export function RoomTypeForm({
         max_children: parseInt(formData.max_children.toString()),
         standard_occupancy: parseInt(formData.standard_occupancy.toString()),
         extra_bed_price: parseFloat(formData.extra_bed_price.toString()) || 0,
+        child_price: formData.child_price === '' ? null : Math.max(0, parseFloat(formData.child_price.toString()) || 0),
         bed_configuration: formData.bed_configuration || null,
         size_sqm: formData.size_sqm ? parseFloat(formData.size_sqm) : null,
         num_available_rooms: parseInt(formData.num_available_rooms.toString()),
@@ -172,7 +175,7 @@ export function RoomTypeForm({
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="standard_occupancy">Standard Occupancy *</Label>
             <Input
@@ -184,12 +187,12 @@ export function RoomTypeForm({
               required
             />
             <p className="text-xs text-muted-foreground">
-              Guests included in the base price before extra-bed charges apply
+              Adults included in the base price before extra-bed charges apply
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="extra_bed_price">Extra Bed / Guest Price (₹ per night)</Label>
+            <Label htmlFor="extra_bed_price">Extra Bed / Adult Price (₹ per night)</Label>
             <Input
               id="extra_bed_price"
               type="number"
@@ -199,7 +202,23 @@ export function RoomTypeForm({
               onChange={(e) => handleChange('extra_bed_price', e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Charged per guest beyond standard occupancy, up to max occupancy
+              Charged per adult beyond standard occupancy, up to max occupancy
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="child_price">Child Price, Ages 6–11 (₹ per night)</Label>
+            <Input
+              id="child_price"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.child_price}
+              onChange={(e) => handleChange('child_price', e.target.value)}
+              placeholder="Same as extra bed"
+            />
+            <p className="text-xs text-muted-foreground">
+              Charged per night for every child aged 6–11; ages 1–5 stay free. Empty = extra bed price, 0 = free
             </p>
           </div>
         </div>

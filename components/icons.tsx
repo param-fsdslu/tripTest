@@ -11,6 +11,7 @@
  */
 import { forwardRef } from 'react'
 import type { Icon, IconProps, IconWeight } from '@phosphor-icons/react'
+import { AirplaneIcon as PhAirplane } from '@phosphor-icons/react/dist/ssr/Airplane'
 import { AnchorIcon as PhAnchor } from '@phosphor-icons/react/dist/ssr/Anchor'
 import { ArchiveIcon as PhArchive } from '@phosphor-icons/react/dist/ssr/Archive'
 import { ArrowCounterClockwiseIcon as PhArrowCounterClockwise } from '@phosphor-icons/react/dist/ssr/ArrowCounterClockwise'
@@ -37,6 +38,7 @@ import { BookmarkSimpleIcon as PhBookmarkSimple } from '@phosphor-icons/react/di
 import { BuildingIcon as PhBuilding } from '@phosphor-icons/react/dist/ssr/Building'
 import { BuildingApartmentIcon as PhBuildingApartment } from '@phosphor-icons/react/dist/ssr/BuildingApartment'
 import { BuildingsIcon as PhBuildings } from '@phosphor-icons/react/dist/ssr/Buildings'
+import { BusIcon as PhBus } from '@phosphor-icons/react/dist/ssr/Bus'
 import { CalendarIcon as PhCalendar } from '@phosphor-icons/react/dist/ssr/Calendar'
 import { CalendarBlankIcon as PhCalendarBlank } from '@phosphor-icons/react/dist/ssr/CalendarBlank'
 import { CalendarCheckIcon as PhCalendarCheck } from '@phosphor-icons/react/dist/ssr/CalendarCheck'
@@ -78,6 +80,7 @@ import { FileTextIcon as PhFileText } from '@phosphor-icons/react/dist/ssr/FileT
 import { FlameIcon as PhFlame } from '@phosphor-icons/react/dist/ssr/Flame'
 import { FloppyDiskIcon as PhFloppyDisk } from '@phosphor-icons/react/dist/ssr/FloppyDisk'
 import { FlowerIcon as PhFlower } from '@phosphor-icons/react/dist/ssr/Flower'
+import { FlowerLotusIcon as PhFlowerLotus } from '@phosphor-icons/react/dist/ssr/FlowerLotus'
 import { ForkKnifeIcon as PhForkKnife } from '@phosphor-icons/react/dist/ssr/ForkKnife'
 import { FunnelIcon as PhFunnel } from '@phosphor-icons/react/dist/ssr/Funnel'
 import { GearIcon as PhGear } from '@phosphor-icons/react/dist/ssr/Gear'
@@ -85,6 +88,7 @@ import { GlobeIcon as PhGlobe } from '@phosphor-icons/react/dist/ssr/Globe'
 import { GridNineIcon as PhGridNine } from '@phosphor-icons/react/dist/ssr/GridNine'
 import { HeadsetIcon as PhHeadset } from '@phosphor-icons/react/dist/ssr/Headset'
 import { HeartIcon as PhHeart } from '@phosphor-icons/react/dist/ssr/Heart'
+import { HospitalIcon as PhHospital } from '@phosphor-icons/react/dist/ssr/Hospital'
 import { HouseIcon as PhHouse } from '@phosphor-icons/react/dist/ssr/House'
 import { ImageIcon as PhImage } from '@phosphor-icons/react/dist/ssr/Image'
 import { ImageBrokenIcon as PhImageBroken } from '@phosphor-icons/react/dist/ssr/ImageBroken'
@@ -147,6 +151,7 @@ import { TextHThreeIcon as PhTextHThree } from '@phosphor-icons/react/dist/ssr/T
 import { TextHTwoIcon as PhTextHTwo } from '@phosphor-icons/react/dist/ssr/TextHTwo'
 import { TextItalicIcon as PhTextItalic } from '@phosphor-icons/react/dist/ssr/TextItalic'
 import { TextUnderlineIcon as PhTextUnderline } from '@phosphor-icons/react/dist/ssr/TextUnderline'
+import { TrainIcon as PhTrain } from '@phosphor-icons/react/dist/ssr/Train'
 import { TrashIcon as PhTrash } from '@phosphor-icons/react/dist/ssr/Trash'
 import { TreeEvergreenIcon as PhTreeEvergreen } from '@phosphor-icons/react/dist/ssr/TreeEvergreen'
 import { TreePalmIcon as PhTreePalm } from '@phosphor-icons/react/dist/ssr/TreePalm'
@@ -213,6 +218,7 @@ export const Bookmark = solid(PhBookmarkSimple, 'Bookmark')
 export const BookOpen = solid(PhBookOpen, 'BookOpen')
 export const Building = solid(PhBuilding, 'Building')
 export const Building2 = solid(PhBuildings, 'Building2')
+export const Bus = solid(PhBus, 'Bus')
 export const Calendar = solid(PhCalendar, 'Calendar')
 export const CalendarCheck = solid(PhCalendarCheck, 'CalendarCheck')
 export const CalendarDays = solid(PhCalendarDots, 'CalendarDays')
@@ -263,6 +269,7 @@ export const Heading3 = bold(PhTextHThree, 'Heading3')
 export const Headset = solid(PhHeadset, 'Headset')
 export const Heart = solid(PhHeart, 'Heart')
 export const Home = solid(PhHouse, 'Home')
+export const Hospital = solid(PhHospital, 'Hospital')
 export const Hotel = solid(PhBuildingApartment, 'Hotel')
 export const House = solid(PhHouse, 'House')
 export const Image = solid(PhImage, 'Image')
@@ -300,6 +307,7 @@ export const ParkingCircle = solid(PhLetterCircleP, 'ParkingCircle')
 export const PawPrint = solid(PhPawPrint, 'PawPrint')
 export const Pencil = solid(PhPencil, 'Pencil')
 export const Phone = solid(PhPhone, 'Phone')
+export const Plane = solid(PhAirplane, 'Plane')
 export const Plus = bold(PhPlus, 'Plus')
 export const Printer = solid(PhPrinter, 'Printer')
 export const Quote = solid(PhQuotes, 'Quote')
@@ -328,6 +336,8 @@ export const Star = solid(PhStar, 'Star')
 export const Store = solid(PhStorefront, 'Store')
 export const Sun = solid(PhSun, 'Sun')
 export const Target = solid(PhTarget, 'Target')
+export const Temple = solid(PhFlowerLotus, 'Temple')
+export const Train = solid(PhTrain, 'Train')
 export const Trash2 = solid(PhTrash, 'Trash2')
 export const TreePalm = solid(PhTreePalm, 'TreePalm')
 export const Trees = solid(PhTreeEvergreen, 'Trees')

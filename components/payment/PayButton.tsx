@@ -18,9 +18,11 @@ interface PayButtonProps {
   amount: number
   checkout: ReturnType<typeof useRazorpayCheckout>
   onPay: () => void
+  /** The last attempt was cancelled or failed: "Try again" */
+  retry?: boolean
 }
 
-export function PayButton({ amount, checkout, onPay }: PayButtonProps) {
+export function PayButton({ amount, checkout, onPay, retry = false }: PayButtonProps) {
   const { stage, isError } = checkout
 
   return (
@@ -42,7 +44,7 @@ export function PayButton({ amount, checkout, onPay }: PayButtonProps) {
       ) : (
         <>
           <CreditCard className="h-5 w-5" />
-          Pay ₹{Math.round(amount).toLocaleString('en-IN')}
+          {retry ? 'Try again · ' : ''}Pay ₹{Math.round(amount).toLocaleString('en-IN')}
         </>
       )}
     </Button>

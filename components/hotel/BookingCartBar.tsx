@@ -1,9 +1,9 @@
 'use client'
 
 /**
- * BookingCartBar — pinned to the bottom of the hotel page (phones and desktop) once a room is
- * added to the booking. It updates as rooms are added, re-counted or removed; the summary jumps
- * back to the rooms list, the button goes to checkout. Small 6px corners, not pills, by request.
+ * BookingCartBar — the stay picked last, pinned to the bottom of the page by FloatingCartBar
+ * (every page but the hotel, review and payment pages), with the hotel's name. The summary goes
+ * back to the hotel's rooms, the button to checkout. Small 6px corners, not pills, by request.
  */
 import { ArrowRight, BedDouble, CloudCheck, X } from '@/components/icons'
 import { Button } from '@/components/ui/button'
@@ -24,12 +24,14 @@ interface BookingCartBarProps {
   staySummary?: string
   /** Signed in: the selection is kept on the account (lib/actions/saved-stays.ts) */
   savedToAccount?: boolean
+  /** Shown off the hotel page, where the bar has to say which hotel the rooms are at */
+  hotelName?: string
   onEdit: () => void
   onClear: () => void
   onCheckout: () => void
 }
 
-export function BookingCartBar({ rooms, cart, staySummary, savedToAccount, onEdit, onClear, onCheckout }: BookingCartBarProps) {
+export function BookingCartBar({ rooms, cart, staySummary, savedToAccount, hotelName, onEdit, onClear, onCheckout }: BookingCartBarProps) {
   const lines = Array.from(cart.entries()).flatMap(([roomId, qty]) => {
     const room = rooms.find((r) => r.id === roomId)
     return room ? [{ room, qty }] : []
@@ -69,11 +71,11 @@ export function BookingCartBar({ rooms, cart, staySummary, savedToAccount, onEdi
               {formatCurrency(nightlyTotal)}
               <span className="ml-1 font-sans text-xs font-medium text-muted-foreground">/ night</span>
             </span>
-            <span className="hidden text-sm font-semibold text-foreground lg:block">
-              {roomsLabel} added to your booking
+            <span className="hidden truncate text-sm font-semibold text-foreground lg:block">
+              {hotelName ? `${roomsLabel} at ${hotelName}` : `${roomsLabel} added to your booking`}
             </span>
             <span className="block truncate text-xs text-muted-foreground">
-              <span className="lg:hidden">{roomsLabel} · </span>
+              <span className="lg:hidden">{hotelName ? `${roomsLabel} at ${hotelName}` : roomsLabel} · </span>
               {itemsLabel}
               {staySummary && <span className="hidden lg:inline"> · {staySummary}</span>}
             </span>

@@ -5,7 +5,7 @@
  * throwing, to prevent page-level crashes when hotel data is unavailable.
  * avg_rating and starting_price are computed fields derived from joined tables.
  */
-import { createClient } from '@/lib/db/server';
+import { createAdminClient, createClient } from '@/lib/db/server';
 import { sameCity } from '@/lib/utils/blog-city';
 import type {
   Hotel,
@@ -43,21 +43,23 @@ export class HotelService {
     const result = new Map<string, number>();
     if (roomTypeIds.length === 0) return result;
 
-    const { data: bookings } = await db
-      .from('bookings')
-      .select('room_type_id, num_rooms')
-      .in('room_type_id', roomTypeIds)
-      .in('booking_status', ['confirmed', 'pending'])
-      .in('payment_status', ['paid', 'pending', 'processing'])
-      .lt('check_in_date', checkOutDate)
-      .gt('check_out_date', checkInDate);
-
-    const { data: blocks } = await db
-      .from('room_inventory_blocks')
-      .select('room_type_id, rooms_blocked')
-      .in('room_type_id', roomTypeIds)
-      .lte('start_date', checkOutDate)
-      .gte('end_date', checkInDate);
+    // Both at once: each is a round trip to Firestore
+    const [{ data: bookings }, { data: blocks }] = await Promise.all([
+      db
+        .from('bookings')
+        .select('room_type_id, num_rooms')
+        .in('room_type_id', roomTypeIds)
+        .in('booking_status', ['confirmed', 'pending'])
+        .in('payment_status', ['paid', 'pending', 'processing'])
+        .lt('check_in_date', checkOutDate)
+        .gt('check_out_date', checkInDate),
+      db
+        .from('room_inventory_blocks')
+        .select('room_type_id, rooms_blocked')
+        .in('room_type_id', roomTypeIds)
+        .lte('start_date', checkOutDate)
+        .gte('end_date', checkInDate),
+    ]);
 
     const bookedByRoom = new Map<string, number>();
     for (const b of bookings || []) {
@@ -366,7 +368,8 @@ export class HotelService {
 
     if (checkIn && checkOut && data.room_types?.length) {
       const [availableMap, priceMap] = await Promise.all([
-        this.getAvailableRoomsMap(db, data.room_types, checkIn, checkOut),
+        // Admin client: everyone's bookings count (a visitor's own client only sees theirs); only counts come back
+        this.getAvailableRoomsMap(createAdminClient(), data.room_types, checkIn, checkOut),
         this.getEffectivePriceMap(db, data.room_types, checkIn, checkOut),
       ]);
       data.room_types = data.room_types.map((rt: any) => ({

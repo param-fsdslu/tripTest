@@ -5,7 +5,9 @@ import { HotelSearchBox } from '@/components/search/HotelSearchBox'
 import { HotelFilters } from '@/components/search/HotelFilters'
 import { HotelSearchResults } from '@/components/search/HotelSearchResults'
 import { MobileHotelBar } from '@/components/search/MobileHotelBar'
-import { createClient } from '@/lib/db/server'
+import { createAdminClient, createClient } from '@/lib/db/server'
+import { HotelService } from '@/lib/services/hotel.service'
+import { parseChildAges, partyNightlyPrice, roomsForParty } from '@/lib/utils/occupancy'
 import { hotelLocationFilter } from '@/lib/utils/india-locations'
 import { Loader2 } from '@/components/icons'
 import { FeaturedBlogs } from '@/components/FeaturedBlogs'
@@ -18,6 +20,8 @@ interface SearchParams {
     checkOut?: string
     adults?: string
     children?: string
+    /** Children's ages, "2,6" (from the guests picker) */
+    ages?: string
     rooms?: string
     pets?: string
     minPrice?: string
@@ -47,6 +51,7 @@ export default async function HotelsPage({ searchParams }: SearchParams) {
       state,
       country,
       location_rating,
+      nearby_places,
       hotel_images!hotel_images_hotel_id_fkey(
         id,
         image_url,
@@ -56,7 +61,15 @@ export default async function HotelsPage({ searchParams }: SearchParams) {
       ),
       room_types!room_types_hotel_id_fkey(
         id,
-        base_price
+        base_price,
+        status,
+        max_adults,
+        max_children,
+        max_occupancy,
+        standard_occupancy,
+        extra_bed_price,
+        child_price,
+        num_available_rooms
       ),
       hotel_amenities!hotel_amenities_hotel_id_fkey(
         amenity_id
@@ -94,6 +107,52 @@ export default async function HotelsPage({ searchParams }: SearchParams) {
   const minPriceFilter = params.minPrice ? parseFloat(params.minPrice) : undefined
   const maxPriceFilter = params.maxPrice ? parseFloat(params.maxPrice) : undefined
   const hasPriceFilter = minPriceFilter !== undefined || maxPriceFilter !== undefined
+  const inPriceRange = (price: number) => price >= (minPriceFilter ?? 0) && price <= (maxPriceFilter ?? Infinity)
+
+  // MakeMyTrip-style: each stay is priced for the searched group, in the rooms its cheapest
+  // fitting room type needs (lib/utils/occupancy.ts), for the searched nights when there are dates
+  const party = {
+    adults: Math.max(1, parseInt(params.adults ?? '') || 2),
+    children: Math.max(0, parseInt(params.children ?? '') || 0),
+    rooms: Math.max(1, parseInt(params.rooms ?? '') || 1),
+    childAges: [] as Array<number | null>,
+  }
+  party.childAges = parseChildAges(params.ages, party.children)
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+  const hasDates =
+    !!params.checkIn && !!params.checkOut && DATE_RE.test(params.checkIn) && DATE_RE.test(params.checkOut) && params.checkOut > params.checkIn
+  const nights = hasDates
+    ? Math.round((Date.parse(`${params.checkOut}T00:00:00Z`) - Date.parse(`${params.checkIn}T00:00:00Z`)) / 86_400_000)
+    : 0
+
+  // Rooms left and the dates' prices (weekend/festival rules) for every room type at once. Admin
+  // client: everyone's bookings count, and only counts come back.
+  const allRoomTypes = (hotels ?? []).flatMap((hotel: any) => hotel.room_types ?? [])
+  const [roomsLeft, datePrices] =
+    hasDates && allRoomTypes.length > 0
+      ? await Promise.all([
+          HotelService.getAvailableRoomsMap(createAdminClient(), allRoomTypes, params.checkIn!, params.checkOut!),
+          HotelService.getEffectivePriceMap(db, allRoomTypes, params.checkIn!, params.checkOut!),
+        ])
+      : [new Map<string, number>(), new Map<string, number>()]
+
+  /** The cheapest room type that takes the group: its rooms, a night's price, and the stay's total */
+  const partyQuote = (roomTypes: any[]) => {
+    const quotes = roomTypes.flatMap((rt: any) => {
+      if (rt.status !== 'available' || (hasPriceFilter && !inPriceRange(rt.base_price))) return []
+      const room = {
+        ...rt,
+        num_available_rooms: roomsLeft.get(rt.id) ?? rt.num_available_rooms,
+        current_price: datePrices.get(rt.id),
+      }
+      const fit = roomsForParty(room, party)
+      if (fit.error) return []
+      const night = partyNightlyPrice(room, fit.rooms, party)
+      return [{ rooms: fit.rooms, nightly: night.total, extraBeds: night.extraBeds }]
+    })
+    const best = quotes.sort((a, b) => a.nightly - b.nightly)[0]
+    return best ? { ...best, nights, total: best.nightly * nights } : undefined
+  }
 
   let processedHotels =
     hotels?.map((hotel: any) => {
@@ -112,6 +171,8 @@ export default async function HotelsPage({ searchParams }: SearchParams) {
           displayPrice = Math.min(...inRangePrices)
         }
       }
+
+      const quote = partyQuote(hotel.room_types ?? [])
 
       const approvedReviews = (hotel.reviews || []).filter(
         (r: any) => r.status === 'approved'
@@ -132,6 +193,7 @@ export default async function HotelsPage({ searchParams }: SearchParams) {
         minPrice,
         maxPrice,
         displayPrice,
+        quote,
         avg_rating,
         review_count,
         amenityIds: hotel.hotel_amenities?.map((ha: any) => ha.amenity_id) || [],
@@ -157,11 +219,12 @@ export default async function HotelsPage({ searchParams }: SearchParams) {
     : 'popularity'
   const qualityScore = (h: any) => (h.star_rating || 0) * 2 + (h.location_rating || 0)
   switch (sortBy) {
+    // By the group's price; stays without rooms for the group go last
     case 'price_low':
-      processedHotels.sort((a, b) => a.minPrice - b.minPrice)
+      processedHotels.sort((a, b) => (a.quote?.nightly ?? Infinity) - (b.quote?.nightly ?? Infinity))
       break
     case 'price_high':
-      processedHotels.sort((a, b) => b.minPrice - a.minPrice)
+      processedHotels.sort((a, b) => (b.quote?.nightly ?? -Infinity) - (a.quote?.nightly ?? -Infinity))
       break
     case 'rating':
       processedHotels.sort((a, b) => (b.star_rating || 0) - (a.star_rating || 0))
@@ -202,6 +265,7 @@ export default async function HotelsPage({ searchParams }: SearchParams) {
                 checkOut: params.checkOut,
                 adults: params.adults,
                 children: params.children,
+                ages: params.ages,
                 rooms: params.rooms,
                 pets: params.pets,
                 minPrice: params.minPrice,

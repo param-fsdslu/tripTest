@@ -109,6 +109,7 @@ export async function getWishlistHotels() {
         state,
         country,
         location_rating,
+        nearby_places,
         hotel_images(id, image_url, alt_text, is_primary, display_order),
         room_types(base_price)
       `)

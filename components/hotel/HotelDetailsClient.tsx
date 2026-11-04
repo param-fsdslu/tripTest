@@ -12,9 +12,10 @@
  * scrollToSection: smooth-scrolls to a section and accounts for the sticky navbar
  * height (80px) plus the tabs bar height so sections aren't hidden under them.
  *
- * Booking: rooms added go into a cart pinned to the bottom (BookingCartBar). Anyone can book:
- * without a session the review page takes a name and mobile number (guest checkout). Signed-in
- * guests get the cart saved to their account (saved_stays) and restored on any device.
+ * Booking, MakeMyTrip-style: the guests and rooms come from the search box (or StayGuestsPicker
+ * beside the dates), each room type shows the rooms that party needs and their price with extra
+ * beds (RoomComparison, lib/utils/occupancy.ts), and Select goes straight to the review page.
+ * Anyone can book: without a session the review page takes a name and mobile number.
  */
 import { useHotelBySlug } from '@/lib/hooks/use-hotels';
 import Image from 'next/image';
@@ -26,9 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from '@/i18n/routing';
 import { useSearchStore } from '@/lib/stores/use-search-store';
-import { useUIStore } from '@/lib/stores/use-ui-store';
 import { format } from 'date-fns';
-import { getCurrentUser } from '@/lib/actions/session';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import {
   MapPin,
@@ -43,29 +42,13 @@ import { getAmenityIcon } from '@/lib/utils/amenityIcons';
 import { FREE_CANCELLATION_HOURS } from '@/lib/config/cancellation-policy';
 import { Button } from '@/components/ui/button';
 import { RoomAvailabilityCard } from './RoomAvailabilityCard';
-import { BookingCartBar } from './BookingCartBar';
 import { SimilarStays } from './SimilarStays';
+import { NearbyPlaces } from './NearbyPlaces';
+import { nearestPlaces } from '@/lib/utils/nearby-places';
 import { Footer } from '@/components/Footer';
-import { cn, formatCurrency, getInclusivePrice } from '@/lib/utils';
-import { getSavedStay, saveStay, type SavedStay } from '@/lib/actions/saved-stays';
-
-/** Saved rooms that can still be booked, capped at what's left */
-function restoreCart(saved: SavedStay, rooms: any[]) {
-  const next = new Map<string, number>();
-  for (const { roomId, qty } of saved.rooms) {
-    const room = rooms.find((r) => r.id === roomId);
-    if (!room || room.status !== 'available' || !(room.num_available_rooms > 0)) continue;
-    next.set(roomId, Math.min(qty, room.num_available_rooms));
-  }
-  return next;
-}
-
-/** What gets saved: the rooms plus the stay they were picked for (empty cart → 'empty') */
-function stayKey(cart: Map<string, number>, stay: unknown[]) {
-  if (cart.size === 0) return 'empty';
-  return JSON.stringify([[...cart].sort(([a], [b]) => a.localeCompare(b)), stay]);
-}
-
+import { cn, formatCurrency } from '@/lib/utils';
+import { applyCartStay, upcomingCartDates, useCartStore } from '@/lib/stores/use-cart-store';
+import { childAgesParam, partyNightlyPrice, roomsForParty, type Party } from '@/lib/utils/occupancy';
 
 interface HotelDetailsClientProps {
   slug: string;
@@ -97,20 +80,11 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
   const searchAdults = useSearchStore((s) => s.adults);
   const searchChildren = useSearchStore((s) => s.children);
   const searchPets = useSearchStore((s) => s.pets);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const authVersion = useUIStore((s) => s.authVersion);
+  const searchRooms = useSearchStore((s) => s.rooms);
+  const searchChildAges = useSearchStore((s) => s.childAges);
+  const party: Party = { adults: searchAdults, children: searchChildren, rooms: searchRooms, childAges: searchChildAges };
   const [activeTab, setActiveTab] = useState('overview');
   const tabsRef = useRef<HTMLDivElement>(null);
-  // Rooms added to the booking: roomId → qty (RoomComparison edits it, BookingCartBar shows it)
-  const [cart, setCart] = useState<Map<string, number>>(new Map());
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const user = await getCurrentUser();
-      setIsAuthenticated(!!user);
-    };
-    checkAuth();
-  }, [authVersion]);
 
   // Scroll spy: update active tab based on scroll position
   useEffect(() => {
@@ -130,61 +104,12 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Signed in: the selection is kept on the account (saved_stays). On sign-in, saved rooms come
-  // back when nothing is picked yet; otherwise the rooms picked before signing in get saved.
-  const hotelId: string | undefined = hotel?.id;
-  const [syncReady, setSyncReady] = useState(false);
-  const lastSavedKey = useRef<string | null>(null);
-  const checkInStr = searchCheckIn ? format(searchCheckIn, 'yyyy-MM-dd') : undefined;
-  const checkOutStr = searchCheckOut ? format(searchCheckOut, 'yyyy-MM-dd') : undefined;
-  const stay = [checkInStr ?? null, checkOutStr ?? null, searchAdults, searchChildren, searchPets];
-
+  // The stay picked last (lib/stores/use-cart-store.ts, kept by the review page) comes back with
+  // its dates and guests when the search box has no dates (e.g. after a reload)
   useEffect(() => {
-    setSyncReady(false);
-    lastSavedKey.current = null;
-    if (!isAuthenticated || !hotelId) return;
-    let cancelled = false;
-    getSavedStay(hotelId)
-      .then((saved) => {
-        if (cancelled) return;
-        const restored = saved && cart.size === 0 ? restoreCart(saved, hotel?.room_types ?? []) : null;
-        if (restored?.size) {
-          lastSavedKey.current = stayKey(restored, stay);
-          setCart((prev) => (prev.size > 0 ? prev : restored));
-        } else if (cart.size === 0) {
-          lastSavedKey.current = 'empty';
-        }
-        setSyncReady(true);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-    // Runs on sign-in / hotel change only; the cart is read as it was at that moment
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, hotelId]);
-
-  const currentKey = stayKey(cart, stay);
-  useEffect(() => {
-    if (!syncReady || !hotelId || currentKey === lastSavedKey.current) return;
-    const timer = setTimeout(() => {
-      lastSavedKey.current = currentKey;
-      saveStay({
-        hotelId,
-        rooms: Array.from(cart, ([roomId, qty]) => ({ roomId, qty })),
-        checkIn: checkInStr,
-        checkOut: checkOutStr,
-        adults: searchAdults,
-        children: searchChildren,
-        pets: searchPets,
-      }).catch(() => {
-        lastSavedKey.current = null;
-      });
-    }, 800);
-    return () => clearTimeout(timer);
-    // currentKey covers cart and stay changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [syncReady, hotelId, currentKey]);
+    const kept = useCartStore.getState();
+    if (kept.hotel?.slug === slug && upcomingCartDates(kept) && !useSearchStore.getState().checkIn) applyCartStay();
+  }, [slug]);
 
   // Phones: the bottom "Select rooms" bar hides while the rooms list is on screen
   const [roomsInView, setRoomsInView] = useState(false);
@@ -209,6 +134,18 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
   }, []);
+
+  // "Back to hotel" (review page) and the floating cart land on the rooms list (#rooms), once per
+  // visit. Read late: Next.js writes the new URL after this page's effects have run.
+  const roomsHashHandled = useRef(false);
+  useEffect(() => {
+    if (!hotelLoaded || roomsHashHandled.current) return;
+    const timer = setTimeout(() => {
+      roomsHashHandled.current = true;
+      if (window.location.hash === '#rooms') scrollToSection('rooms');
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [hotelLoaded, scrollToSection]);
 
   if (isLoading) {
     return (
@@ -251,9 +188,12 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
     );
   }
 
-  // Cheapest room for the chosen dates (weekend/festival pricing when dates are set), all-inclusive
-  const roomPrices = (hotel.room_types ?? []).map((room: any) => getInclusivePrice(room.current_price ?? room.base_price));
-  const startingPrice = roomPrices.length ? Math.min(...roomPrices) : undefined;
+  // Cheapest stay for this party (the rooms each type needs, extra beds, the dates' pricing), all-inclusive
+  const partyPrices = (hotel.room_types ?? []).flatMap((room: any) => {
+    const fit = roomsForParty(room, party);
+    return fit.error || room.status !== 'available' ? [] : [partyNightlyPrice(room, fit.rooms, party).total];
+  });
+  const startingPrice = partyPrices.length ? Math.min(...partyPrices) : undefined;
   // Every 360° photo of the hotel (its own, then each room's), played inside the photo viewer
   const panoramaViews = hotelPanoramaViews(hotel.hotel_panoramas, hotel.room_types);
   const amenityNames: string[] = (hotel.hotel_amenities ?? []).map((item: any) => item.amenity?.name).filter(Boolean);
@@ -270,22 +210,26 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
       ? `${format(searchCheckIn, 'd MMM')} – ${format(searchCheckOut, 'd MMM')} · ${searchAdults + searchChildren} guests`
       : 'Add dates for exact prices';
 
-  const handleBookRooms = (selections: Array<{ roomId: string; qty: number }>) => {
-    const dateParams = new URLSearchParams();
-    if (searchCheckIn) dateParams.set('checkIn', format(searchCheckIn, 'yyyy-MM-dd'));
-    if (searchCheckOut) dateParams.set('checkOut', format(searchCheckOut, 'yyyy-MM-dd'));
-    if (searchAdults) dateParams.set('adults', String(searchAdults));
-    if (searchChildren) dateParams.set('children', String(searchChildren));
-    if (searchPets) dateParams.set('pets', '1');
-    const dateSuffix = dateParams.toString() ? `&${dateParams.toString()}` : '';
-
-    // No sign-in needed: guests book with their name and mobile number on the review page
-    if (selections.length === 1 && selections[0].qty === 1) {
-      router.push(`/hotels/${slug}/book?roomId=${selections[0].roomId}${dateSuffix}`);
-    } else {
-      const roomsParam = selections.map((s) => `${s.roomId}:${s.qty}`).join(',');
-      router.push(`/hotels/${slug}/book?rooms=${roomsParam}${dateSuffix}`);
+  // Select: the rooms this party needs of one room type, straight to the review page (no sign-in needed).
+  // Children's ages price the stay and the review page doesn't ask them: a missing one opens the
+  // guests picker (StayGuestsPicker, at the top) first.
+  const selectRoom = (roomId: string, rooms: number) => {
+    if (searchChildren > 0 && searchChildAges.some((age) => age == null)) {
+      document.getElementById('stay-guests')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      useSearchStore.getState().setIsGuestOpen(true);
+      return;
     }
+    const params = new URLSearchParams();
+    if (rooms === 1) params.set('roomId', roomId);
+    else params.set('rooms', `${roomId}:${rooms}`);
+    if (searchCheckIn) params.set('checkIn', format(searchCheckIn, 'yyyy-MM-dd'));
+    if (searchCheckOut) params.set('checkOut', format(searchCheckOut, 'yyyy-MM-dd'));
+    params.set('adults', String(searchAdults));
+    if (searchChildren) params.set('children', String(searchChildren));
+    const ages = searchChildren ? childAgesParam(searchChildAges) : undefined;
+    if (ages) params.set('ages', ages);
+    if (searchPets) params.set('pets', '1');
+    router.push(`/hotels/${slug}/book?${params.toString()}`);
   };
 
   return (
@@ -395,6 +339,7 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
             <RoomAvailabilityCard
               className="lg:col-start-2"
               rooms={hotel.room_types}
+              party={party}
               stayLabel={stayLabel}
               onSelectRoom={(roomId) => scrollToSection(`room-${roomId}`)}
               onViewAll={() => scrollToSection('rooms')}
@@ -477,6 +422,16 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Nearby places & connectivity, nearest first (set in the admin hotel form) */}
+              {nearestPlaces(hotel.nearby_places).length > 0 && (
+                <Card className="mt-6">
+                  <CardContent className="px-5 sm:px-6">
+                    <h2 className="text-lg font-bold text-foreground mb-3">Nearby &amp; Connectivity</h2>
+                    <NearbyPlaces places={hotel.nearby_places} />
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Rooms Section */}
@@ -484,9 +439,8 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
               {hotel.room_types && hotel.room_types.length > 0 && (
                 <RoomComparison
                   rooms={hotel.room_types}
-                  cart={cart}
-                  setCart={setCart}
-                  onBookRooms={handleBookRooms}
+                  party={party}
+                  onSelectRoom={selectRoom}
                 />
               )}
             </div>
@@ -737,29 +691,14 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
 
       <SimilarStays hotelId={hotel.id} city={hotel.city} />
 
-      {/* The bottom padding keeps the footer clear of the bar pinned over it (booking / Select rooms) */}
-      <Footer className={cart.size > 0 ? 'pb-24' : 'pb-20 lg:pb-0'} />
+      {/* The bottom padding keeps the footer clear of the phones' Select rooms bar */}
+      <Footer className="pb-20 lg:pb-0" />
 
-      {/* Every screen size: once rooms are added, the booking stays pinned to the bottom */}
-      {cart.size > 0 && (
-        <BookingCartBar
-          rooms={hotel.room_types ?? []}
-          cart={cart}
-          staySummary={stayLabel}
-          savedToAccount={syncReady}
-          onEdit={() => scrollToSection('rooms')}
-          onClear={() => setCart(new Map())}
-          onCheckout={() =>
-            handleBookRooms(Array.from(cart.entries()).map(([roomId, qty]) => ({ roomId, qty })))
-          }
-        />
-      )}
-
-      {/* Phones / tablets, nothing added yet: price + Select rooms always at hand (hidden over the rooms list) */}
+      {/* Phones / tablets: the party's cheapest stay + Select rooms always at hand (hidden over the rooms list) */}
       <div
         className={cn(
           'fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur-md transition-transform duration-300 lg:hidden',
-          roomsInView || cart.size > 0 ? 'translate-y-full' : 'translate-y-0'
+          roomsInView ? 'translate-y-full' : 'translate-y-0'
         )}
       >
         <div className="page-container flex items-center justify-between gap-3 py-3">

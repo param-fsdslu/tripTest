@@ -3,13 +3,17 @@ import { createAdminClient, createClient } from '@/lib/db/server'
 import { guestAccessHash, saveGuestStay } from '@/lib/services/guest-checkout.service'
 import { normalizeIndianMobile } from '@/lib/utils/phone'
 import { withApiLogging } from '@/lib/utils/with-api-logging'
-import { isValidEmail, isValidPhone, parseGstDetails, type GstDetailsInput, getRoomGstRate, MEAL_GST_RATE, isWithinBookingWindow, MAX_BOOKING_MONTHS_AHEAD, calculateExtraBedCharge, calculateRoomStayPricing, type PriceRuleInput } from '@/lib/utils'
+import { isValidEmail, isValidPhone, parseGstDetails, type GstDetailsInput, getRoomGstRate, MEAL_GST_RATE, isWithinBookingWindow, MAX_BOOKING_MONTHS_AHEAD, calculateGuestCharges, calculateRoomStayPricing, type PriceRuleInput } from '@/lib/utils'
+import { occupancyError, occupancyLimits, splitGuests, type RoomGuests } from '@/lib/utils/occupancy'
 
 /**
  * POST /api/bookings/multi
  *
  * Creates one booking record per room type in a single request, sharing the same
- * guest info, dates, and guests.  Room GST is computed per-room-type based on each
+ * guest info and dates. Each room type carries its own guests (rooms[].numAdults /
+ * numChildren, checked against what its rooms take; older clients send only the party, shared
+ * out here) and pays for its own extra guests: extra beds for adults, the child price for
+ * children aged 6–11 (`childrenAges`, in room order; 1–5 free). Room GST is computed per-room-type based on each
  * room's base_price slab (0% / 5% / 18%).  Meal GST is a flat 5% on the meal total.
  * The last booking absorbs any rounding residual so that sum(total_amount) == grand total.
  *
@@ -19,6 +23,9 @@ import { isValidEmail, isValidPhone, parseGstDetails, type GstDetailsInput, getR
 interface RoomSelection {
   roomTypeId: string
   numRooms: number
+  /** This room type's own guests (the review page sends them) */
+  numAdults?: number
+  numChildren?: number
 }
 
 interface BookingMealPlan {
@@ -50,7 +57,8 @@ interface MultiBookingBody {
   checkOutDate: string
   numAdults: number
   numChildren: number
-  childrenAges?: number[]
+  /** One per child (1–11), in the order of `rooms`; a missing one counts as 6–11 */
+  childrenAges?: Array<number | null>
   specialRequests?: string
   mealPlanTotal?: number
   mealPlans?: BookingMealPlan[]
@@ -107,8 +115,9 @@ const handler = async (request: NextRequest) => {
       )
     }
 
-    const db = await createClient()
-    const admin = createAdminClient()
+    // Fresh reads (no catalogue cache): room prices and capacity decide the charge
+    const db = await createClient({ fresh: true })
+    const admin = createAdminClient({ fresh: true })
 
     // The account comes from the session, never the request body. No session = guest checkout:
     // the booking is kept under the mobile number and only this browser can pay for it.
@@ -125,7 +134,7 @@ const handler = async (request: NextRequest) => {
 
     const { data: roomTypes, error: rtError } = await db
       .from('room_types')
-      .select('id, name, base_price, num_available_rooms, hotel_id, standard_occupancy, max_occupancy, extra_bed_price')
+      .select('id, name, base_price, num_available_rooms, hotel_id, standard_occupancy, max_occupancy, max_adults, max_children, extra_bed_price, child_price')
       .in('id', roomTypeIds)
       .eq('hotel_id', body.hotelId)
       .eq('status', 'available')
@@ -138,6 +147,38 @@ const handler = async (request: NextRequest) => {
     }
 
     const roomTypeMap = new Map(roomTypes.map((rt) => [rt.id, rt]))
+
+    // ── Occupancy: never more guests than the rooms take ─────────────────────
+    const perRoomGuests = body.rooms.every((r) => r.numAdults !== undefined && r.numChildren !== undefined)
+    const partyAdults = Number(body.numAdults)
+    const partyChildren = Number(body.numChildren) || 0
+    const roomGuests: RoomGuests[] = perRoomGuests
+      ? body.rooms.map((sel) => ({ adults: Number(sel.numAdults), children: Number(sel.numChildren) }))
+      : splitGuests(
+          body.rooms.map((sel) => ({ room: roomTypeMap.get(sel.roomTypeId)!, qty: sel.numRooms })),
+          partyAdults,
+          partyChildren
+        )
+    const totalAdults = roomGuests.reduce((sum, g) => sum + g.adults, 0)
+    const totalChildren = roomGuests.reduce((sum, g) => sum + g.children, 0)
+    if (!perRoomGuests && (totalAdults !== partyAdults || totalChildren !== partyChildren)) {
+      const capacity = body.rooms.reduce(
+        (sum, sel) => sum + occupancyLimits(roomTypeMap.get(sel.roomTypeId)!, sel.numRooms).total,
+        0
+      )
+      return NextResponse.json({ error: `These rooms take up to ${capacity} guests in total` }, { status: 400 })
+    }
+    for (let i = 0; i < body.rooms.length; i++) {
+      const sel = body.rooms[i]
+      const occupancy = occupancyError(roomTypeMap.get(sel.roomTypeId)!, sel.numRooms, roomGuests[i])
+      if (occupancy) return NextResponse.json({ error: occupancy }, { status: 400 })
+    }
+
+    // The children's ages price their charges; a missing or odd one counts as 6–11 (charged)
+    const childAges = Array.from({ length: totalChildren }, (_, i) => {
+      const age = Number(body.childrenAges?.[i])
+      return Number.isInteger(age) && age >= 0 && age <= 17 ? age : null
+    })
 
     // ── Availability check per room type ─────────────────────────────────────
     for (const selection of body.rooms) {
@@ -211,19 +252,26 @@ const handler = async (request: NextRequest) => {
 
     const mealGst = mealPlanTotal * MEAL_GST_RATE
 
-    const extraBedCharge = calculateExtraBedCharge(
-      body.rooms.map((sel) => {
-        const rt = roomTypeMap.get(sel.roomTypeId)!
-        return {
+    // Per room type for its own guests, on its own booking: extra beds for adults beyond the
+    // included places, the child price for children aged 6–11 (their ages taken in room order)
+    let agesUsed = 0
+    const extraBedCharges = body.rooms.map((sel, i) => {
+      const rt = roomTypeMap.get(sel.roomTypeId)!
+      const ages = childAges.slice(agesUsed, agesUsed + roomGuests[i].children)
+      agesUsed += roomGuests[i].children
+      return calculateGuestCharges(
+        {
           qty: sel.numRooms,
           standardOccupancy: rt.standard_occupancy,
-          maxOccupancy: rt.max_occupancy,
           extraBedPrice: rt.extra_bed_price,
-        }
-      }),
-      body.numAdults + body.numChildren,
-      nights
-    )
+          childPrice: rt.child_price,
+        },
+        roomGuests[i].adults,
+        ages,
+        nights
+      ).total
+    })
+    const extraBedCharge = extraBedCharges.reduce((sum, c) => sum + c, 0)
 
     const grandTotal =
       roomBreakdowns.reduce((s, r) => s + r.subtotal + r.totalTax, 0) +
@@ -238,10 +286,10 @@ const handler = async (request: NextRequest) => {
       const selection = body.rooms[i]
       const bd = roomBreakdowns[i]
 
-      // Meal plan total (and its GST) and the extra-bed charge are attached to the first booking only
+      // Meal plan total (and its GST) is attached to the first booking only
       const thisMealPlanTotal = i === 0 ? mealPlanTotal : 0
       const thisMealGst = i === 0 ? mealGst : 0
-      const thisExtraBedCharge = i === 0 ? extraBedCharge : 0
+      const thisExtraBedCharge = extraBedCharges[i]
 
       // Last booking absorbs any rounding residual to ensure exact grand total
       const thisBase = bd.subtotal + thisMealPlanTotal + thisExtraBedCharge
@@ -276,8 +324,8 @@ const handler = async (request: NextRequest) => {
           ...gst.value,
           check_in_date: body.checkInDate,
           check_out_date: body.checkOutDate,
-          num_adults: body.numAdults,
-          num_children: body.numChildren,
+          num_adults: roomGuests[i].adults,
+          num_children: roomGuests[i].children,
           num_rooms: selection.numRooms,
           price_per_night: Math.round((bd.subtotal / nights / selection.numRooms) * 100) / 100,
           tax_amount: thisGstAmount,
@@ -335,8 +383,8 @@ const handler = async (request: NextRequest) => {
         rooms: body.rooms.map((r) => ({ roomId: r.roomTypeId, qty: r.numRooms })),
         checkIn: body.checkInDate,
         checkOut: body.checkOutDate,
-        adults: body.numAdults,
-        children: body.numChildren,
+        adults: totalAdults,
+        children: totalChildren,
         pets: body.withPets === true,
       })
     }

@@ -10,15 +10,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useRazorpayCheckout } from '@/lib/hooks/useRazorpayCheckout'
 import { PayButton } from '@/components/payment/PayButton'
+import { PaymentStatusNotice, type PaymentResult } from '@/components/payment/PaymentStatusNotice'
+import { PaymentProgressOverlay } from '@/components/payment/PaymentProgressOverlay'
 import { CancellationPolicyNotice } from '@/components/booking/CancellationPolicyNotice'
 import { StaySummaryCard } from '@/components/booking/review/StaySummaryCard'
 import { PriceBreakupCard } from '@/components/booking/review/PriceBreakupCard'
@@ -35,21 +30,19 @@ import {
   User,
   Mail,
   Phone,
-  Users,
-  Baby,
   BedDouble,
   AlertCircle,
-  CheckCircle2,
   Loader2,
-  CreditCard,
   UtensilsCrossed,
-  Info,
 } from '@/components/icons'
 import { format, differenceInDays } from 'date-fns'
-import { cn, calculateBookingTax, isValidPhone, calculateExtraBedCharge, calculateRoomStayPricing, type PriceRuleInput } from '@/lib/utils'
+import { cn, calculateBookingTax, isValidPhone, calculateGuestCharges, calculateRoomStayPricing, type PriceRuleInput } from '@/lib/utils'
 import type { MealPlan, MealType } from '@/lib/types'
 import { formatPhone } from '@/lib/utils/phone'
 import { saveStay } from '@/lib/actions/saved-stays'
+import { useCartStore } from '@/lib/stores/use-cart-store'
+import { fitGuests, occupancyError, type RoomGuests } from '@/lib/utils/occupancy'
+import { ReviewRoomCard } from '@/components/booking/review/ReviewRoomCard'
 
 /** Email is optional: a guest can book with just a mobile number and find the booking by signing in with it */
 export const GUEST_EMAIL_HINT =
@@ -76,11 +69,12 @@ const MEAL_TYPE_LABELS: Record<MealType, string> = {
 
 const MEAL_TYPE_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner']
 
-/** Classify a child age into meal pricing category. */
-function childMealCategory(age: number): 'infant' | 'child' | 'adult' {
-  if (age <= 5) return 'infant'   // 0–5: no meal charge
+/** Classify a child age into meal pricing category (an age not picked yet counts as a child). */
+function childMealCategory(age: number | null): 'infant' | 'child' | 'adult' {
+  if (age == null) return 'child'
+  if (age <= 5) return 'infant'   // 1–5: no meal charge
   if (age <= 11) return 'child'   // 6–11: child price
-  return 'adult'                   // 12+: adult price
+  return 'adult'                   // 12+ (older links): adult price
 }
 
 /**
@@ -90,7 +84,7 @@ function childMealCategory(age: number): 'infant' | 'child' | 'adult' {
 function mealPlanCost(
   mp: MealPlan,
   numAdults: number,
-  childrenAges: number[],
+  childrenAges: Array<number | null>,
   numNights: number
 ): { adultCost: number; childCost: number; total: number } {
   const childrenFromAges = childrenAges.filter((a) => childMealCategory(a) === 'child').length
@@ -115,6 +109,7 @@ interface Room {
   max_occupancy: number
   standard_occupancy: number
   extra_bed_price: number
+  child_price?: number | null
   num_available_rooms?: number
   bed_configuration?: string
   room_type_images?: Array<{
@@ -125,6 +120,7 @@ interface Room {
 
 interface Hotel {
   id: string
+  slug?: string
   name: string
   address_line_1: string
   city: string
@@ -152,9 +148,11 @@ interface BookingFormProps {
   initialChildren?: number
   /** Travelling with pets, from the search box */
   initialPets?: boolean
+  /** Children's ages from the guests picker (null = not picked) */
+  initialChildAges?: Array<number | null>
 }
 
-export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], userId, userEmail, userName, userPhone, initialCheckIn, initialCheckOut, initialAdults, initialChildren, initialPets }: BookingFormProps) {
+export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], userId, userEmail, userName, userPhone, initialCheckIn, initialCheckOut, initialAdults, initialChildren, initialPets, initialChildAges = [] }: BookingFormProps) {
   const router = useRouter()
   const savedGuest = useBookingStore((s) => s.guestDetails)
   const setGuestDetails = useBookingStore((s) => s.setGuestDetails)
@@ -200,25 +198,24 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
   // Booking Details — pre-filled from search store via URL params
   const [checkInDate, setCheckInDate] = useState<Date | undefined>(initialCheckIn)
   const [checkOutDate, setCheckOutDate] = useState<Date | undefined>(initialCheckOut)
-  const [numAdults, setNumAdults] = useState(initialAdults ?? 1)
-  const [numChildren, setNumChildren] = useState(initialChildren ?? 0)
   const [withPets, setWithPets] = useState(initialPets ?? false)
-  const [childrenAges, setChildrenAges] = useState<number[]>([])
-  const [numRooms, setNumRooms] = useState(1)
+  // One room, and guests that fit it: picked on the hotel page (MakeMyTrip-style; "Back to hotel"
+  // changes them). A party needing more rooms is sent to the multi-room form by the page.
+  const numRooms = 1
+  const [guests] = useState<RoomGuests>(() =>
+    fitGuests(room, 1, { adults: initialAdults ?? 1, children: initialChildren ?? 0 })
+  )
+  const numAdults = guests.adults
+  const numChildren = guests.children
+  // Children's ages come from the guests picker (search box / hotel page), not asked here;
+  // a missing one is priced as 6–11
+  const [childrenAges] = useState<Array<number | null>>(() =>
+    Array.from({ length: numChildren }, (_, i) => initialChildAges[i] ?? null)
+  )
   const [specialRequests, setSpecialRequests] = useState('')
   const [gstEnabled, setGstEnabled] = useState(false)
   const [gstDetails, setGstDetails] = useState(EMPTY_GST_DETAILS)
   const [selectedMealPlanIds, setSelectedMealPlanIds] = useState<string[]>([])
-
-  // Keep childrenAges in sync with numChildren (add/remove slots)
-  useEffect(() => {
-    setChildrenAges((prev) => {
-      if (numChildren > prev.length) {
-        return [...prev, ...Array(numChildren - prev.length).fill(0)]
-      }
-      return prev.slice(0, numChildren)
-    })
-  }, [numChildren])
 
   // ── Pricing calculations ─────────────────────────────────────────────────
   const numNights = checkInDate && checkOutDate ? differenceInDays(checkOutDate, checkInDate) : 0
@@ -238,16 +235,19 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
 
   const tax = calculateBookingTax(room.base_price, baseSubtotal, mealPlanTotal)
 
-  const extraBedCharge = calculateExtraBedCharge(
-    [{
+  // Beyond the room's included places: extra beds for adults, the child price for ages 6–11
+  const guestCharges = calculateGuestCharges(
+    {
       qty: numRooms,
       standardOccupancy: room.standard_occupancy,
-      maxOccupancy: room.max_occupancy,
       extraBedPrice: room.extra_bed_price,
-    }],
-    numAdults + numChildren,
+      childPrice: room.child_price,
+    },
+    numAdults,
+    childrenAges,
     numNights
   )
+  const extraBedCharge = guestCharges.total
 
   const grandTotal = tax.totalAmount + extraBedCharge
 
@@ -260,6 +260,26 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
     .filter(Boolean)
     .join(' · ')
 
+  // The cart at the bottom of other pages follows this page (dates and guests can change here)
+  const setCart = useCartStore((s) => s.setCart)
+  const cartPrice = numNights > 0 ? baseSubtotal / numNights / numRooms : room.base_price
+  const cartKey = JSON.stringify([numRooms, cartPrice, checkInStr, checkOutStr, numAdults, numChildren, childrenAges, withPets])
+  useEffect(() => {
+    if (!hotel.slug) return
+    setCart({
+      hotel: { id: hotel.id, slug: hotel.slug, name: hotel.name },
+      rooms: [{ id: room.id, name: room.name, qty: numRooms, price: cartPrice }],
+      checkIn: checkInStr || undefined,
+      checkOut: checkOutStr || undefined,
+      adults: numAdults,
+      children: numChildren,
+      childAges: childrenAges,
+      pets: withPets,
+    })
+    // cartKey covers everything the cart holds
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartKey, room.id])
+
   const [bookingCreated, setBookingCreated] = useState<{
     bookingId: string
     bookingReference: string
@@ -267,11 +287,12 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
 
   // "Proceed to payment" creates the booking and opens Razorpay in one go; the Pay button below is for retries
   const checkout = useRazorpayCheckout()
-  const [paymentClosed, setPaymentClosed] = useState(false)
+  // How the last Razorpay window closed without paying (cancelled / failed), shown above Pay
+  const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null)
 
   const openPayment = (booking: { bookingId: string; bookingReference: string }) => {
     setError(null)
-    setPaymentClosed(false)
+    setPaymentResult(null)
     return checkout.startPayment(
       {
         bookingIds: [booking.bookingId],
@@ -280,16 +301,12 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
         guestEmail: email,
         guestPhone: phone,
       },
-      { onDismiss: () => setPaymentClosed(true), onError: setError }
+      {
+        onDismiss: () => setPaymentResult({ kind: 'cancelled' }),
+        onFailed: (message) => setPaymentResult({ kind: 'failed', message }),
+        onError: setError,
+      }
     )
-  }
-
-  const handleChildAgeChange = (index: number, age: number) => {
-    setChildrenAges((prev) => {
-      const next = [...prev]
-      next[index] = age
-      return next
-    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -317,9 +334,8 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
       if (numAdults < 1) {
         throw new Error('At least one adult is required')
       }
-      if (numAdults + numChildren > room.max_occupancy * numRooms) {
-        throw new Error(`Maximum occupancy exceeded for ${numRooms} room(s)`)
-      }
+      const occupancy = occupancyError(room, numRooms, guests)
+      if (occupancy) throw new Error(occupancy)
 
       const bookingData = {
         userId,
@@ -380,6 +396,9 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
   }
 
   return (
+    <>
+    {/* Reserving the rooms, opening Razorpay, confirming the payment: a loader over the page */}
+    <PaymentProgressOverlay progress={isSubmitting ? 'creating' : checkout.stage} />
     <div className="grid lg:grid-cols-3 gap-6">
       {/* Booking Form */}
       <div className="lg:col-span-2">
@@ -395,133 +414,15 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
               guestsLabel={guestsLabel}
               locked={!!bookingCreated}
             >
-              <div>
-                <h3 className="font-heading text-base font-bold text-foreground">{room.name}</h3>
-                <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                  {room.bed_configuration && (
-                    <span className="flex items-center gap-1">
-                      <BedDouble className="h-3.5 w-3.5" />
-                      {room.bed_configuration}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1">
-                    <Users className="h-3.5 w-3.5" />
-                    Up to {room.max_occupancy} guests per room
-                  </span>
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="numAdults">Adults *</Label>
-                  <Select
-                    value={numAdults.toString()}
-                    onValueChange={(v) => setNumAdults(parseInt(v))}
-                    disabled={!!bookingCreated}
-                  >
-                    <SelectTrigger id="numAdults" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: room.max_adults }, (_, i) => i + 1).map((num) => (
-                        <SelectItem key={num} value={num.toString()}>
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            {num} {num === 1 ? 'Adult' : 'Adults'}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="numChildren">Children</Label>
-                  <Select
-                    value={numChildren.toString()}
-                    onValueChange={(v) => setNumChildren(parseInt(v))}
-                    disabled={!!bookingCreated}
-                  >
-                    <SelectTrigger id="numChildren" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: room.max_children + 1 }, (_, i) => i).map((num) => (
-                        <SelectItem key={num} value={num.toString()}>
-                          <div className="flex items-center gap-2">
-                            <Baby className="h-4 w-4" />
-                            {num} {num === 1 ? 'Child' : 'Children'}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="numRooms">Rooms *</Label>
-                  <Select
-                    value={numRooms.toString()}
-                    onValueChange={(v) => setNumRooms(parseInt(v))}
-                    disabled={!!bookingCreated}
-                  >
-                    <SelectTrigger id="numRooms" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: Math.min(room.num_available_rooms || 5, 5) }, (_, i) => i + 1).map((num) => (
-                        <SelectItem key={num} value={num.toString()}>
-                          <div className="flex items-center gap-2">
-                            <BedDouble className="h-4 w-4" />
-                            {num} {num === 1 ? 'Room' : 'Rooms'}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <h3 className="flex items-center gap-2 font-heading text-base font-bold text-foreground">
+                  <BedDouble className="h-4 w-4 text-primary" />
+                  Your room
+                </h3>
+                <ReviewRoomCard room={room} qty={numRooms} guests={guests} childAges={childrenAges} />
               </div>
 
               <PetsOptIn checked={withPets} onCheckedChange={setWithPets} policy={hotel.pet_policy_text} disabled={!!bookingCreated} />
-
-              {/* Child age inputs */}
-              {numChildren > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Baby className="h-4 w-4 text-muted-foreground" />
-                    <Label className="text-sm font-medium">Children's Ages</Label>
-                    <span className="text-xs text-muted-foreground">(required for meal pricing)</span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {Array.from({ length: numChildren }, (_, i) => (
-                      <div key={i} className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">Child {i + 1}</Label>
-                        <Select
-                          value={childrenAges[i]?.toString() ?? '0'}
-                          onValueChange={(v) => handleChildAgeChange(i, parseInt(v))}
-                        >
-                          <SelectTrigger className="h-9">
-                            <SelectValue placeholder="Age" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Array.from({ length: 18 }, (_, age) => (
-                              <SelectItem key={age} value={age.toString()}>
-                                {age === 0 ? 'Under 1' : `${age} yr${age !== 1 ? 's' : ''}`}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    ))}
-                  </div>
-                  <Alert className="py-2">
-                    <Info className="h-4 w-4" />
-                    <AlertDescription className="text-xs">
-                      Age 0–5: Infant (no meal charge) · Age 6–11: Child rate · Age 12+: Adult rate
-                    </AlertDescription>
-                  </Alert>
-                </div>
-              )}
             </StaySummaryCard>
 
             {/* Guest Details */}
@@ -745,7 +646,12 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
                 label: mp.name,
                 amount: mealPlanCost(mp, numAdults, childrenAges, numNights).total,
               })),
-              ...(extraBedCharge > 0 ? [{ label: 'Extra bed / guest charge', amount: extraBedCharge }] : []),
+              ...(guestCharges.extraBed > 0
+                ? [{ label: `Extra bed · ${guestCharges.extraAdults} ${guestCharges.extraAdults === 1 ? 'adult' : 'adults'}`, amount: guestCharges.extraBed }]
+                : []),
+              ...(guestCharges.child > 0
+                ? [{ label: `Child charge · ${guestCharges.extraChildren} ${guestCharges.extraChildren === 1 ? 'child' : 'children'} (6–11)`, amount: guestCharges.child }]
+                : []),
             ]}
             taxes={[
               { label: `GST on rooms (${Math.round(tax.gstRate * 100)}%)`, amount: tax.roomGstAmount },
@@ -818,27 +724,20 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
               </>
             ) : (
               <>
-                <Alert className="border-green-200 bg-green-50">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <AlertDescription className="text-green-800">
-                    Booking created · Reference <strong>{bookingCreated.bookingReference}</strong>
-                  </AlertDescription>
-                </Alert>
+                {/* No "booking created" note (by request): the page only says how the payment went */}
+                {paymentResult && <PaymentStatusNotice result={paymentResult} />}
                 <PayButton
                   amount={grandTotal}
                   checkout={checkout}
                   onPay={() => openPayment(bookingCreated)}
+                  retry={!!paymentResult}
                 />
-                <p className="text-center text-xs text-muted-foreground">
-                  {paymentClosed
-                    ? 'Payment window closed. Your booking is held, pay now to confirm it.'
-                    : 'Complete the payment to confirm your booking'}
-                </p>
               </>
             )}
           </PriceBreakupCard>
         </div>
       </div>
     </div>
+    </>
   )
 }

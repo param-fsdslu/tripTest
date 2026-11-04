@@ -130,44 +130,46 @@ export function isWithinBookingWindow(dateStr: string): boolean {
   return date <= getMaxBookableDate()
 }
 
-// ─── Extra bed / additional guest pricing ───────────────────────────────────
-export interface ExtraBedRoomSelection {
-  /** Number of rooms booked of this room type. */
+// ─── Extra guests: extra beds and children ──────────────────────────────────
+/** Children from this age up to CHILD_MAX_AGE pay the child price; younger ones stay free */
+export const CHILD_PRICE_MIN_AGE = 6
+/** The oldest a child can be; 12 and up are adults */
+export const CHILD_MAX_AGE = 11
+
+export interface GuestChargeRoom {
+  /** Number of rooms booked of this room type */
   qty: number
-  /** Guests included in base_price per room before extra_bed_price applies. */
+  /** Adults included in base_price per room (room_types.standard_occupancy) */
   standardOccupancy: number
-  /** Max guests per room of this type — caps how many extra beds can be added. */
-  maxOccupancy: number
-  /** Per-guest, per-night charge for guests beyond standardOccupancy. */
+  /** Per adult a night beyond the included adults (room_types.extra_bed_price) */
   extraBedPrice: number
+  /** Per child aged 6–11 a night, every such child (room_types.child_price); unset = extraBedPrice */
+  childPrice?: number | null
 }
 
 /**
- * Computes the total extra-bed/additional-guest charge across one or more room-type
- * selections for a stay. Guests are counted against each selection's standard
- * capacity (qty x standardOccupancy) first; any guests beyond total standard
- * capacity are billed against each selection's remaining extra capacity
- * (qty x (maxOccupancy - standardOccupancy)), in the order the selections are given,
- * at that room type's own extra_bed_price.
+ * Extra-guest charges for one room type's guests over a stay. Every child aged 6–11 pays the child
+ * price a night (the extra-bed price when the room has no child price); children up to 5 stay free.
+ * The room rate includes qty × standardOccupancy adults; each adult beyond them pays extraBedPrice a
+ * night. An unknown age (null: search results, the hotel page, an age not picked yet) counts as 6–11,
+ * so estimates never come out low.
  */
-export function calculateExtraBedCharge(
-  selections: ExtraBedRoomSelection[],
-  totalGuests: number,
+export function calculateGuestCharges(
+  room: GuestChargeRoom,
+  adults: number,
+  childAges: Array<number | null | undefined>,
   nights: number
-): number {
-  const totalStandardCapacity = selections.reduce((sum, s) => sum + s.qty * s.standardOccupancy, 0)
-  let overflow = Math.max(0, totalGuests - totalStandardCapacity)
-  let charge = 0
-
-  for (const sel of selections) {
-    if (overflow <= 0) break
-    const extraCapacity = sel.qty * Math.max(0, sel.maxOccupancy - sel.standardOccupancy)
-    const used = Math.min(overflow, extraCapacity)
-    charge += used * sel.extraBedPrice * nights
-    overflow -= used
-  }
-
-  return charge
+) {
+  const ages = childAges.map((age) => (age == null || !Number.isFinite(Number(age)) ? null : Number(age)))
+  // 12 and over (older links) pay as adults
+  const adultGuests = adults + ages.filter((age) => age !== null && age > CHILD_MAX_AGE).length
+  const payingChildren = ages.filter((age) => age === null || (age >= CHILD_PRICE_MIN_AGE && age <= CHILD_MAX_AGE)).length
+  const extraAdults = Math.max(0, adultGuests - Math.max(0, room.qty * room.standardOccupancy))
+  const extraChildren = payingChildren
+  const childPrice = room.childPrice == null ? room.extraBedPrice : room.childPrice
+  const extraBed = extraAdults * (Number(room.extraBedPrice) || 0) * nights
+  const child = extraChildren * (Number(childPrice) || 0) * nights
+  return { extraBed, child, total: extraBed + child, extraAdults, extraChildren }
 }
 
 // ─── Phone validation ────────────────────────────────────────────────────────

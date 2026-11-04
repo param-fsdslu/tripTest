@@ -14,9 +14,17 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { createHotel, updateHotel } from '@/lib/actions/admin'
-import { Loader2 } from '@/components/icons'
+import { Loader2, Plus, X } from '@/components/icons'
 import { ADMIN_PATH } from '@/lib/config/admin-path'
 import { LocationFields } from './LocationFields'
+import { MAX_NEARBY_PLACES, NEARBY_PLACE_TYPES, nearestPlaces } from '@/lib/utils/nearby-places'
+
+/** A nearby place being edited (distance as typed) */
+interface NearbyRow {
+  type: string
+  name: string
+  distance: string
+}
 
 // Extract the src URL from a Google Maps embed iframe code
 function parseIframeSrc(iframeCode: string): string | null {
@@ -61,6 +69,12 @@ export function HotelForm({ hotel, isEdit = false }: HotelFormProps) {
     pet_policy_text: hotel?.pet_policy_text || '',
     status: hotel?.status || 'active',
   })
+  // Nearby places & connectivity (hotels.nearby_places): the 2 nearest show on the search results card
+  const [nearbyRows, setNearbyRows] = useState<NearbyRow[]>(() =>
+    nearestPlaces(hotel?.nearby_places).map((p) => ({ type: p.type, name: p.name, distance: String(p.distance_km) }))
+  )
+  const updateNearbyRow = (index: number, patch: Partial<NearbyRow>) =>
+    setNearbyRows((rows) => rows.map((row, i) => (i === index ? { ...row, ...patch } : row)))
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -96,6 +110,10 @@ export function HotelForm({ hotel, isEdit = false }: HotelFormProps) {
         star_rating: formData.star_rating ? parseInt(formData.star_rating) : null,
         latitude: formData.latitude ? parseFloat(formData.latitude) : null,
         longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+        // Rows without a name are dropped; the server cleans and sorts the rest
+        nearby_places: nearbyRows
+          .filter((row) => row.name.trim())
+          .map((row) => ({ type: row.type, name: row.name.trim(), distance_km: parseFloat(row.distance) || 0 })),
       }
 
       const result = isEdit
@@ -303,6 +321,82 @@ export function HotelForm({ hotel, isEdit = false }: HotelFormProps) {
             />
           </div>
         )}
+      </div>
+
+      {/* Nearby places & connectivity */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold text-foreground">Nearby &amp; Connectivity</h3>
+          <p className="text-sm text-muted-foreground">
+            Railway station, bus stand, airport, beach… with the distance from the hotel. All show on the hotel
+            page; the 2 nearest also show on the search results card.
+          </p>
+        </div>
+
+        {nearbyRows.length > 0 && (
+          <div className="space-y-3">
+            {nearbyRows.map((row, index) => (
+              <div key={index} className="grid gap-2 sm:grid-cols-[11rem_minmax(0,1fr)_8rem_auto] sm:items-center">
+                <Select value={row.type} onValueChange={(value) => updateNearbyRow(index, { type: value })}>
+                  <SelectTrigger aria-label={`Place ${index + 1} type`} className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {NEARBY_PLACE_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  aria-label={`Place ${index + 1} name`}
+                  value={row.name}
+                  onChange={(e) => updateNearbyRow(index, { name: e.target.value })}
+                  placeholder="Honnavar Railway Station"
+                  maxLength={80}
+                />
+                <div className="relative">
+                  <Input
+                    aria-label={`Place ${index + 1} distance in km`}
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={row.distance}
+                    onChange={(e) => updateNearbyRow(index, { distance: e.target.value })}
+                    placeholder="2.5"
+                    className="pr-10"
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    km
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setNearbyRows((rows) => rows.filter((_, i) => i !== index))}
+                  aria-label={`Remove place ${index + 1}`}
+                  className="justify-self-end text-muted-foreground hover:text-destructive"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          disabled={nearbyRows.length >= MAX_NEARBY_PLACES}
+          onClick={() => setNearbyRows((rows) => [...rows, { type: 'railway', name: '', distance: '' }])}
+        >
+          <Plus className="h-4 w-4" />
+          Add place
+        </Button>
       </div>
 
       {/* Contact Information */}

@@ -7,6 +7,10 @@
  * 1. POST /api/payment/create-order with only the booking ids (the server reads the amount from the DB)
  * 2. Opens Razorpay Checkout (an overlay on this page, so it needs no fresh click to open)
  * 3. On success POST /api/payment/verify (HMAC check on the server), then the success page
+ *
+ * Closing the window reports what happened: onDismiss when the guest just cancelled, onFailed when
+ * a payment attempt failed in it (Razorpay keeps its window open after a failure so the guest can
+ * retry, so the failure is reported once the window closes). Other problems go to onError.
  */
 import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -23,9 +27,11 @@ export interface CheckoutParams {
 }
 
 export interface CheckoutCallbacks {
-  /** The guest closed the payment window without paying */
+  /** The guest closed the payment window without paying or trying to */
   onDismiss?: () => void
-  /** Order creation, the payment or its verification failed */
+  /** A payment attempt failed (card declined, UPI timed out…) and the window was closed */
+  onFailed?: (message: string) => void
+  /** Order creation or the verification failed (or a payment failure, without onFailed) */
   onError?: (message: string) => void
 }
 
@@ -48,7 +54,7 @@ export function useRazorpayCheckout() {
   const [stage, setStage] = useState<CheckoutStage>('idle')
 
   const startPayment = useCallback(
-    async (params: CheckoutParams, { onDismiss, onError }: CheckoutCallbacks = {}) => {
+    async (params: CheckoutParams, { onDismiss, onFailed, onError }: CheckoutCallbacks = {}) => {
       const { bookingIds, bookingType = 'hotel', bookingReference } = params
       const fail = (message: string) => {
         setStage('idle')
@@ -70,6 +76,9 @@ export function useRazorpayCheckout() {
         const orderData = await orderResponse.json().catch(() => ({}))
         if (!orderResponse.ok) throw new Error(orderData.error || 'Failed to create payment order')
         if (!ready) throw new Error('The payment system did not load. Please check your connection and try again.')
+
+        // The last failed attempt in this window, reported when it closes (unless a retry succeeds)
+        let failure: string | null = null
 
         const razorpay = new window.Razorpay({
           key: RAZORPAY_KEY_ID,
@@ -114,13 +123,15 @@ export function useRazorpayCheckout() {
           modal: {
             ondismiss: () => {
               setStage('idle')
-              onDismiss?.()
+              if (failure) (onFailed ?? onError)?.(failure)
+              else onDismiss?.()
             },
           },
         })
 
         razorpay.on('payment.failed', async (response: any) => {
           console.error('Payment failed:', response.error)
+          failure = response.error?.description || 'The payment did not go through.'
           try {
             await fetch('/api/payment/failed', {
               method: 'POST',
@@ -136,7 +147,6 @@ export function useRazorpayCheckout() {
           } catch (err) {
             console.error('Failed to update payment status:', err)
           }
-          fail(response.error?.description || 'Payment failed. Please try again.')
         })
 
         razorpay.open()

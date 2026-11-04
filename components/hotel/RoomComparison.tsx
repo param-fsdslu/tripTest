@@ -1,11 +1,15 @@
 'use client';
 
 /**
- * Hotel page rooms list: one card per room type (photo, details, price, add to booking) and a
+ * Hotel page rooms list: one card per room type (photo, details, price, Select) and a
  * side-by-side comparison of up to 3 rooms picked with each card's Compare checkbox. Controls
  * here use small 6px corners (`rounded-md`), not pills, by request.
+ *
+ * MakeMyTrip-style booking: the party (adults, children, rooms) is picked up front, and each room
+ * type shows how many of its rooms that party needs and their nightly price with extra beds
+ * (lib/utils/occupancy.ts). Select goes straight to the review page with those rooms.
  */
-import { useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import { useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,17 +26,15 @@ import {
   Users,
   Bed,
   Maximize2,
-  Check,
   X,
   ChevronDown,
   ChevronUp,
   ZoomIn,
-  ShoppingCart,
-  Minus,
-  Plus,
+  ArrowRight,
   Rotate3d,
 } from '@/components/icons';
-import { cn, getInclusivePrice } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
+import { partyNightlyPrice, roomsForParty, type Party } from '@/lib/utils/occupancy';
 import { RoomImageGallery } from './RoomImageGallery';
 import { getAmenityIcon } from '@/lib/utils/amenityIcons';
 
@@ -44,6 +46,9 @@ interface RoomType {
   max_occupancy: number;
   max_adults: number;
   max_children: number;
+  standard_occupancy?: number;
+  extra_bed_price?: number;
+  child_price?: number | null;
   bed_configuration?: string;
   base_price: number;
   /** Effective per-night price for the selected stay dates (weekend/festival pricing applied), when dates are known. */
@@ -80,22 +85,21 @@ interface RoomType {
   }>;
 }
 
-interface RoomCartSelection {
-  roomId: string;
-  qty: number;
-}
-
 const MAX_COMPARE = 3;
 
-/** Effective per-night price — reflects weekend/festival pricing for the selected stay when dates are known. */
-function getDisplayPrice(room: RoomType): number {
-  return room.current_price ?? room.base_price;
-}
-
-/** "2 adults, 1 child" */
+/** "2 adults, 1 child" (no child places of its own: children take adult places) */
 function guestMix(room: RoomType): string {
   const adults = `${room.max_adults} ${room.max_adults === 1 ? 'adult' : 'adults'}`;
-  return `${adults}, ${room.max_children} ${room.max_children === 1 ? 'child' : 'children'}`;
+  return room.max_children > 0 ? `${adults}, ${room.max_children} ${room.max_children === 1 ? 'child' : 'children'}` : adults;
+}
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/** "2 adults · 1 child" */
+export function partyLabel(party: Party) {
+  return [plural(party.adults, 'adult'), party.children > 0 ? plural(party.children, 'child', 'children') : null]
+    .filter(Boolean)
+    .join(' · ');
 }
 
 function amenitiesOf(room: RoomType) {
@@ -104,13 +108,13 @@ function amenitiesOf(room: RoomType) {
 
 interface RoomComparisonProps {
   rooms: RoomType[];
-  /** Rooms added to the booking (roomId → qty); owned by the page, which pins BookingCartBar */
-  cart: Map<string, number>;
-  setCart: Dispatch<SetStateAction<Map<string, number>>>;
-  onBookRooms: (selections: RoomCartSelection[]) => void;
+  /** The guests and rooms picked up front (search box / StayGuestsPicker) */
+  party: Party;
+  /** Book this room type: the rooms the party needs, straight to the review page */
+  onSelectRoom: (roomId: string, rooms: number) => void;
 }
 
-export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomComparisonProps) {
+export function RoomComparison({ rooms, party, onSelectRoom }: RoomComparisonProps) {
   const [expandedRooms, setExpandedRooms] = useState<Set<string>>(new Set());
   const [selectedForCompare, setSelectedForCompare] = useState<Set<string>>(new Set());
   const [showCompareDialog, setShowCompareDialog] = useState(false);
@@ -118,7 +122,19 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
   // Lightbox state
   const [lightbox, setLightbox] = useState<{ roomId: string; index: number } | null>(null);
 
-  const sortedRooms = [...rooms].sort((a, b) => getDisplayPrice(a) - getDisplayPrice(b));
+  // What each room type means for this party: rooms needed (or why it can't be booked) and a night's price
+  const quoteOf = (room: RoomType) => {
+    const soldOut = room.status !== 'available' || room.num_available_rooms === 0;
+    const fit = roomsForParty(room, party);
+    const error = soldOut ? 'Sold out' : fit.error;
+    return { ...fit, error, price: partyNightlyPrice(room, fit.rooms, party) };
+  };
+  const sortedRooms = [...rooms].sort((a, b) => {
+    const qa = quoteOf(a);
+    const qb = quoteOf(b);
+    return Number(!!qa.error) - Number(!!qb.error) || qa.price.total - qb.price.total;
+  });
+  const cheapestId = sortedRooms.find((room) => !quoteOf(room).error)?.id;
 
   const toggleExpand = (roomId: string) => {
     const newExpanded = new Set(expandedRooms);
@@ -139,37 +155,7 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
     });
   };
 
-  // Cart helpers
-  const addToCart = (roomId: string) => {
-    setCart((prev) => new Map(prev).set(roomId, 1));
-  };
-
-  const removeFromCart = (roomId: string) => {
-    setCart((prev) => {
-      const next = new Map(prev);
-      next.delete(roomId);
-      return next;
-    });
-  };
-
-  const updateQty = (roomId: string, delta: number, maxQty: number) => {
-    const current = cart.get(roomId) ?? 1;
-    const next = current + delta;
-    if (next <= 0) {
-      removeFromCart(roomId);
-    } else {
-      setCart((prev) => new Map(prev).set(roomId, Math.min(next, maxQty)));
-    }
-  };
-
-  const handleBookNow = () => {
-    if (cart.size === 0) return;
-    const selections = Array.from(cart.entries()).map(([roomId, qty]) => ({ roomId, qty }));
-    onBookRooms(selections);
-  };
-
   const selectedRooms = sortedRooms.filter((room) => selectedForCompare.has(room.id));
-  const cartRoomCount = Array.from(cart.values()).reduce((sum, qty) => sum + qty, 0);
 
   const allAmenities = new Set<string>();
   selectedRooms.forEach((room) => {
@@ -180,52 +166,53 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
     });
   });
 
-  /** Quantity stepper + Remove, or Add to Booking: the same on the cards and in the comparison */
-  const bookingControls = (room: RoomType, fullWidth = false) => {
-    const isUnavailable = room.status !== 'available' || room.num_available_rooms === 0;
-    if (!cart.has(room.id)) {
-      return (
-        <Button
-          onClick={() => addToCart(room.id)}
-          disabled={isUnavailable}
-          className={cn('gap-2 rounded-md px-5', fullWidth && 'w-full')}
-        >
-          <ShoppingCart className="w-4 h-4" />
-          Add to Booking
-        </Button>
-      );
-    }
-    const cartQty = cart.get(room.id) ?? 1;
+  /** Select (the rooms this party needs), or why it can't be booked: the same on the cards and in the comparison */
+  const selectControl = (room: RoomType, fullWidth = false) => {
+    const quote = quoteOf(room);
+    const label = quote.error
+      ? quote.error === 'Sold out'
+        ? 'Sold out'
+        : 'Not available'
+      : quote.rooms > 1
+        ? `Select ${quote.rooms} rooms`
+        : 'Select room';
     return (
-      <div className="flex items-center gap-2">
-        <div className="flex items-center border rounded-md overflow-hidden">
-          <button
-            type="button"
-            aria-label={`One fewer ${room.name}`}
-            className="px-2 py-1.5 hover:bg-muted transition-colors disabled:opacity-40"
-            onClick={() => updateQty(room.id, -1, room.num_available_rooms)}
-          >
-            <Minus className="w-3.5 h-3.5" />
-          </button>
-          <span className="px-3 text-sm font-medium min-w-8 text-center">{cartQty}</span>
-          <button
-            type="button"
-            aria-label={`One more ${room.name}`}
-            className="px-2 py-1.5 hover:bg-muted transition-colors disabled:opacity-40"
-            onClick={() => updateQty(room.id, 1, room.num_available_rooms)}
-            disabled={cartQty >= room.num_available_rooms}
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
+      <Button
+        onClick={() => onSelectRoom(room.id, quote.rooms)}
+        disabled={!!quote.error}
+        className={cn('gap-2 rounded-md px-5', fullWidth && 'w-full')}
+      >
+        {label}
+        {!quote.error && <ArrowRight className="w-4 h-4" />}
+      </Button>
+    );
+  };
+
+  /** A night for the rooms this party needs, incl. taxes & fees and extra beds */
+  const priceBlock = (room: RoomType, large = true) => {
+    const quote = quoteOf(room);
+    return (
+      <div className="space-y-0.5">
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <span className={cn('font-bold text-primary', large ? 'text-3xl' : 'text-xl')}>
+            {formatCurrency(quote.price.total)}
+          </span>
+          <span className="text-sm text-muted-foreground">/ night</span>
+          {large && room.current_price != null && room.current_price !== room.base_price && (
+            <Badge variant="outline" className="rounded-md text-[10px]">For selected dates</Badge>
+          )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => removeFromCart(room.id)}
-          className="rounded-md text-destructive border-destructive/30 hover:bg-destructive/5"
-        >
-          Remove
-        </Button>
+        <p className="text-xs text-muted-foreground">
+          For {plural(quote.rooms, 'room')} · {partyLabel(party)} · incl. taxes &amp; fees
+        </p>
+        {quote.price.extraBeds > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Incl. {formatCurrency(quote.price.extraBeds)} for {plural(quote.price.extraGuests, 'extra guest')} (extra bed / child rate)
+          </p>
+        )}
+        {quote.error && quote.error !== 'Sold out' && (
+          <p className="text-xs font-medium text-destructive">{quote.error}</p>
+        )}
       </div>
     );
   };
@@ -234,14 +221,7 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
   const compareRows: { label: string; render: (room: RoomType) => ReactNode }[] = [
     {
       label: 'Price per night',
-      render: (room) => (
-        <>
-          <p className="text-xl font-bold text-primary">
-            ₹{getInclusivePrice(getDisplayPrice(room)).toLocaleString('en-IN')}
-          </p>
-          <p className="text-xs text-muted-foreground">incl. taxes & fees</p>
-        </>
-      ),
+      render: (room) => priceBlock(room, false),
     },
     {
       label: 'Guests',
@@ -315,7 +295,7 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
         <div>
           <h2 className="text-xl font-bold text-foreground">Available Rooms & Prices</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Add one or more room types to your booking
+            Prices for {partyLabel(party)}, with the rooms each type needs
           </p>
         </div>
         <p className="text-sm text-muted-foreground">
@@ -359,14 +339,13 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
           const isExpanded = expandedRooms.has(room.id);
           const isSelectedForCompare = selectedForCompare.has(room.id);
           const compareFull = !isSelectedForCompare && selectedForCompare.size >= MAX_COMPARE;
-          const isCheapest = getDisplayPrice(room) === Math.min(...rooms.map(getDisplayPrice));
+          const isCheapest = room.id === cheapestId;
           const primaryImage = room.room_type_images?.[0];
           const roomImages = room.room_type_images ?? [];
           // 360° photos follow the photos in the room's photo viewer
           const roomPanoramas = room.room_type_panoramas ?? [];
           const hasMedia = roomImages.length > 0 || roomPanoramas.length > 0;
           const isLightboxOpen = lightbox?.roomId === room.id;
-          const inCart = cart.has(room.id);
           const amenities = amenitiesOf(room);
 
           return (
@@ -375,8 +354,7 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
               id={`room-${room.id}`}
               className={cn(
                 'gap-0 overflow-hidden rounded-md py-0 transition-all duration-300',
-                inCart && 'ring-2 ring-primary',
-                isCheapest && !inCart && 'border-primary border-2'
+                isCheapest && 'border-primary border-2'
               )}
             >
               <div className="relative">
@@ -506,20 +484,9 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
                       </div>
                     )}
 
-                    {/* Price and Cart Actions */}
+                    {/* Price for this party, and Select */}
                     <div className="flex flex-wrap items-end justify-between gap-3 pt-3 border-t">
-                      <div className="space-y-1">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-3xl font-bold text-primary">
-                            ₹{getInclusivePrice(getDisplayPrice(room)).toLocaleString('en-IN')}
-                          </span>
-                          <span className="text-sm text-muted-foreground">/ night</span>
-                          {room.current_price != null && room.current_price !== room.base_price && (
-                            <Badge variant="outline" className="rounded-md text-[10px]">For selected dates</Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">incl. taxes & fees</p>
-                      </div>
+                      {priceBlock(room)}
 
                       <div className="flex flex-wrap gap-2 items-center">
                         <Button
@@ -534,7 +501,7 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
                             <>More details <ChevronDown className="w-4 h-4" /></>
                           )}
                         </Button>
-                        {bookingControls(room)}
+                        {selectControl(room)}
                       </div>
                     </div>
                   </div>
@@ -594,7 +561,7 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
           <DialogHeader className="border-b px-5 py-4 text-left">
             <DialogTitle className="text-xl">Compare rooms</DialogTitle>
             <DialogDescription>
-              {selectedRooms.length} rooms side by side · prices include taxes & fees
+              {selectedRooms.length} rooms side by side · prices for {partyLabel(party)}, incl. taxes &amp; fees
             </DialogDescription>
           </DialogHeader>
 
@@ -661,16 +628,11 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
                     scope="row"
                     className="sticky left-0 z-10 border-r border-border bg-card p-3 text-left align-top font-medium text-muted-foreground"
                   >
-                    Your booking
+                    Book
                   </th>
                   {selectedRooms.map((room) => (
                     <td key={room.id} className="p-3 align-top">
-                      {bookingControls(room, true)}
-                      {cart.has(room.id) && (
-                        <p className="mt-2 flex items-center gap-1 text-xs text-primary">
-                          <Check className="w-3.5 h-3.5" /> Added to your booking
-                        </p>
-                      )}
+                      {selectControl(room, true)}
                     </td>
                   ))}
                 </tr>
@@ -678,22 +640,6 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
             </table>
           </div>
 
-          {cart.size > 0 && (
-            <div className="flex items-center justify-between gap-4 border-t bg-background px-5 py-3">
-              <p className="text-sm text-muted-foreground">
-                {cartRoomCount} {cartRoomCount === 1 ? 'room' : 'rooms'} in your booking
-              </p>
-              <Button
-                onClick={() => {
-                  setShowCompareDialog(false);
-                  handleBookNow();
-                }}
-                className="rounded-md"
-              >
-                Proceed to checkout
-              </Button>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
     </div>

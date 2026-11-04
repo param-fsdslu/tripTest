@@ -13,12 +13,17 @@
  *
  * Prices displayed use getInclusivePrice() from lib/utils.ts which applies
  * the configured tax and service fee multiplier to the base room price.
+ *
+ * In search results (`priceForGroup`) the price is the searched group's stay, MakeMyTrip-style:
+ * "3 rooms · 6 nights", the total, and a night's price (`hotel.quote`, worked out on /hotels with
+ * lib/utils/occupancy.ts). A stay with no room type for the group says so under its usual price.
  */
 import { useState, useCallback } from 'react'
 import Image from 'next/image'
 import { Link } from '@/i18n/routing'
 import { Star, MapPin, Hotel, ChevronLeft, ChevronRight, ArrowRight } from '@/components/icons'
 import { WishlistButton } from '@/components/wishlist/WishlistButton'
+import { NearbyPlaces } from '@/components/hotel/NearbyPlaces'
 import { cn, formatCurrency, getInclusivePrice } from '@/lib/utils'
 
 interface HotelCardProps {
@@ -33,6 +38,8 @@ interface HotelCardProps {
     state: string
     country: string
     location_rating?: number
+    /** Nearby places & connectivity (lib/utils/nearby-places.ts); the 2 nearest show here */
+    nearby_places?: unknown
     avg_rating?: number
     review_count?: number
     hotel_images?: Array<{
@@ -46,8 +53,14 @@ interface HotelCardProps {
     maxPrice: number
     /** Cheapest room price within the active price filter range. Falls back to minPrice when absent. */
     displayPrice?: number
+    /** The searched group's stay in the cheapest room type that takes it; `nights` 0 without dates */
+    quote?: { rooms: number; nightly: number; nights: number; total: number; extraBeds: number }
   }
+  /** Search results: price the stay for the searched group (needs `hotel.quote`) */
+  priceForGroup?: boolean
 }
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
 /** Guest rating (0–5) in words */
 function ratingWord(rating: number) {
@@ -82,7 +95,7 @@ function GuestRating({ rating, count, className }: { rating?: number; count?: nu
   )
 }
 
-export function HotelCard({ hotel }: HotelCardProps) {
+export function HotelCard({ hotel, priceForGroup = false }: HotelCardProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   // Photos that failed to load are dropped so the card falls back to the placeholder
   const [brokenIds, setBrokenIds] = useState<string[]>([])
@@ -229,6 +242,9 @@ export function HotelCard({ hotel }: HotelCardProps) {
               </span>
             </p>
 
+            {/* The 2 nearest places (railway station, bus stand, beach…) */}
+            <NearbyPlaces places={hotel.nearby_places} limit={2} compact className="mt-2.5" />
+
             {hotel.description && (
               <p className="mt-3 hidden text-[13px] leading-relaxed text-muted-foreground @xl:line-clamp-3">
                 {hotel.description}
@@ -244,14 +260,31 @@ export function HotelCard({ hotel }: HotelCardProps) {
             <GuestRating rating={hotel.avg_rating} count={hotel.review_count} className="hidden @xl:inline-flex" />
 
             <div className="flex w-full items-end justify-between gap-3 @xl:flex-col @xl:items-end @xl:gap-3">
-              <div className="@xl:text-right">
-                {/* "from" only when showing the overall minimum (no price filter active) */}
-                {!hotel.displayPrice && <p className="text-[11px] font-medium text-muted-foreground">Starting from</p>}
-                <p className="font-heading text-xl font-extrabold leading-tight text-foreground @xl:text-2xl">
-                  {formatCurrency(getInclusivePrice(hotel.displayPrice ?? hotel.minPrice))}
-                </p>
-                <p className="text-[11px] text-muted-foreground">per night · incl. taxes &amp; fees</p>
-              </div>
+              {priceForGroup && hotel.quote ? (
+                <div className="@xl:text-right">
+                  <p className="text-[11px] font-semibold text-primary">
+                    {plural(hotel.quote.rooms, 'room')}
+                    {hotel.quote.nights > 0 ? ` · ${plural(hotel.quote.nights, 'night')}` : ''}
+                  </p>
+                  <p className="font-heading text-xl font-extrabold leading-tight text-foreground @xl:text-2xl">
+                    {formatCurrency(hotel.quote.nights > 0 ? hotel.quote.total : hotel.quote.nightly)}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {hotel.quote.nights > 0 ? `${formatCurrency(hotel.quote.nightly)} per night` : 'per night'} · incl. taxes &amp; fees
+                    {hotel.quote.extraBeds > 0 ? ' and extra guests' : ''}
+                  </p>
+                </div>
+              ) : (
+                <div className="@xl:text-right">
+                  {/* "from" only when showing the overall minimum (no price filter active) */}
+                  {!hotel.displayPrice && <p className="text-[11px] font-medium text-muted-foreground">Starting from</p>}
+                  <p className="font-heading text-xl font-extrabold leading-tight text-foreground @xl:text-2xl">
+                    {formatCurrency(getInclusivePrice(hotel.displayPrice ?? hotel.minPrice))}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">per night · incl. taxes &amp; fees</p>
+                  {priceForGroup && <p className="mt-0.5 text-[11px] font-medium text-destructive">Not available for your search</p>}
+                </div>
+              )}
 
               <Link
                 href={href}

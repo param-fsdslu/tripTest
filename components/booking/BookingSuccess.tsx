@@ -18,6 +18,7 @@ import { EFFECTIVE_GATEWAY_FEE_PERCENT, FREE_CANCELLATION_HOURS, freeCancellatio
 import { cn, formatRupees } from '@/lib/utils'
 import { formatPhone } from '@/lib/utils/phone'
 import { invoiceUrl, isInvoiceable } from '@/lib/utils/invoice'
+import { ClearPaidCart } from './ClearPaidCart'
 
 /** 'YYYY-MM-DD' as a calendar date, not shifted by the server's time zone */
 function calendarDate(value: string) {
@@ -92,8 +93,9 @@ export function BookingSuccess({ booking, group }: { booking: any; group: any[] 
 
   const nights = Number(booking.num_nights) || 0
   const totalPaid = group.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0)
-  const adults = Number(booking.num_adults) || 0
-  const children = Number(booking.num_children) || 0
+  // Each room type's booking holds its own guests, so the party is their sum
+  const adults = group.reduce((sum, b) => sum + (Number(b.num_adults) || 0), 0)
+  const children = group.reduce((sum, b) => sum + (Number(b.num_children) || 0), 0)
   const guestsLabel = [
     plural(adults, 'adult', 'adults'),
     children ? plural(children, 'child', 'children') : '',
@@ -110,6 +112,7 @@ export function BookingSuccess({ booking, group }: { booking: any; group: any[] 
       <style href="booking-success-celebrate" precedence="default">
         {CELEBRATE_CSS}
       </style>
+      <ClearPaidCart hotelId={booking.hotel_id} />
 
       <div className="mx-auto w-full max-w-xl px-4 py-10 sm:py-14">
         {/* ── Headline ──────────────────────────────────────────────────── */}

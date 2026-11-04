@@ -2,10 +2,11 @@ import type { AuthUser } from './types'
 
 /**
  * Short-lived cache of session cookie → user, so the several getUser() calls one request
- * makes (guards, actions, pages) cost one session verification. Entries are dropped when
- * the user is updated or signs out.
+ * makes (guards, actions, pages) cost one session verification, and browsing doesn't repeat it
+ * (each costs two round trips to Firebase in the US). Entries are dropped when the user is
+ * updated or signs out here; a session revoked elsewhere stops working within TTL_MS.
  */
-const TTL_MS = 10_000
+const TTL_MS = 60_000
 const MAX_ENTRIES = 500
 
 interface Entry {

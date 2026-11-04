@@ -16,6 +16,7 @@ import { createAdminClient, createClient } from '@/lib/db/server'
 import { revalidatePath } from 'next/cache'
 import { isWithinBookingWindow, MAX_BOOKING_MONTHS_AHEAD, parseGstDetails, type GstDetailsInput } from '@/lib/utils'
 import { normalizeIndianMobile } from '@/lib/utils/phone'
+import { occupancyError } from '@/lib/utils/occupancy'
 import { guestAccessHash, saveGuestStay } from '@/lib/services/guest-checkout.service'
 
 /**
@@ -77,8 +78,9 @@ export interface CreateBookingData {
  */
 export async function createBooking(data: CreateBookingData) {
   try {
-    const db = await createClient()
-    const admin = createAdminClient()
+    // Fresh reads (no catalogue cache): room capacity and availability decide the booking
+    const db = await createClient({ fresh: true })
+    const admin = createAdminClient({ fresh: true })
     const {
       data: { user },
     } = await db.auth.getUser()
@@ -96,13 +98,20 @@ export async function createBooking(data: CreateBookingData) {
     // Validate room availability before creating booking
     const { data: roomType, error: rtError } = await db
       .from('room_types')
-      .select('num_available_rooms, name')
+      .select('num_available_rooms, name, max_adults, max_children, max_occupancy')
       .eq('id', data.roomTypeId)
       .single()
 
     if (rtError || !roomType) {
       return { success: false, error: 'Room type not found' }
     }
+
+    // Never more guests than the rooms take (the review page's counters stop there too)
+    const occupancy = occupancyError(roomType, Number(data.numRooms), {
+      adults: Number(data.numAdults),
+      children: Number(data.numChildren ?? 0),
+    })
+    if (occupancy) return { success: false, error: occupancy }
 
     // Count rooms already booked for overlapping dates (active bookings only). Admin client:
     // everyone's bookings count, not just the ones this caller may read.

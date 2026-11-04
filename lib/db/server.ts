@@ -28,12 +28,16 @@ export function toDbUser(user: AuthUser): DbUser {
   }
 }
 
-export async function createClient(): Promise<AppDbClient> {
+/**
+ * `fresh: true` skips the short catalogue cache (lib/db/cached-store.ts): use it where room
+ * prices or capacity decide what a guest is charged (booking creation, the review page).
+ */
+export async function createClient({ fresh = false }: { fresh?: boolean } = {}): Promise<AppDbClient> {
   // Read cookies up front (as the Supabase client did) so Next.js marks the route dynamic
   // here, rather than inside a query where the error would be caught
   const sessionCookie = (await cookies()).get(SESSION_COOKIE)?.value
   return new DbClient({
-    store: getStore(),
+    store: getStore({ fresh }),
     resolveActor: async () => {
       const user = await sessionUserFromCookie(sessionCookie)
       return { kind: 'user', user: user ? toDbUser(user) : null }
@@ -43,9 +47,9 @@ export async function createClient(): Promise<AppDbClient> {
   })
 }
 
-export function createAdminClient(): AppDbClient {
+export function createAdminClient({ fresh = false }: { fresh?: boolean } = {}): AppDbClient {
   return new DbClient({
-    store: getStore(),
+    store: getStore({ fresh }),
     resolveActor: async () => ({ kind: 'service' }),
     auth: createAuthApi({ admin: true }),
     storage: createStorageApi(),

@@ -59,8 +59,9 @@ export function stayTime(value: string | null | undefined) {
 export function buildBookingSummary(group: any[], now: Date = new Date()): BookingSummary {
   const first = group[0]
   const hotel = first.hotel ?? {}
-  const adults = Number(first.num_adults) || 0
-  const children = Number(first.num_children) || 0
+  // Each room type's booking holds its own guests (multi-room checkout), so the party is their sum
+  const adults = group.reduce((sum, b) => sum + (Number(b.num_adults) || 0), 0)
+  const children = group.reduce((sum, b) => sum + (Number(b.num_children) || 0), 0)
   // Rounded to the paisa: adding floats leaves tails like 3.0700000000000003
   const totalPaid = Math.round(group.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0) * 100) / 100
   const deadline = freeCancellationDeadline(first.check_in_date, hotel.check_in_from_time, now)

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { parseChildAges } from '@/lib/utils/occupancy'
 
 // Separate state shape from actions for clarity
 interface SearchStateData {
@@ -15,6 +16,11 @@ interface SearchStateData {
   rooms: number
   /** Travelling with pets (the checkbox in Rooms & Guests); carried to the booking as `with_pets` */
   pets: boolean
+  /**
+   * One age (1–11) per child, picked in the guests picker (null until then); always as long as
+   * `children`. Prices use it (ages 6–11 pay the child rate) and it goes to the URL as `ages=2,6`.
+   */
+  childAges: Array<number | null>
   boatDate: Date | undefined
   activeTab: 'hotels' | 'boats'
   isGuestOpen: boolean
@@ -30,6 +36,8 @@ interface SearchActions {
   setChildren: (children: number) => void
   setRooms: (rooms: number) => void
   setPets: (pets: boolean) => void
+  setChildAge: (index: number, age: number) => void
+  setChildAges: (ages: Array<number | null>) => void
   setBoatDate: (date: Date | undefined) => void
   setActiveTab: (tab: 'hotels' | 'boats') => void
   setIsGuestOpen: (open: boolean) => void
@@ -48,6 +56,7 @@ const initialState: SearchStateData = {
   children: 0,
   rooms: 1,
   pets: false,
+  childAges: [],
   boatDate: undefined,
   activeTab: 'hotels',
   isGuestOpen: false,
@@ -62,9 +71,14 @@ export const useSearchStore = create<SearchState>()((set) => ({
   setCheckOut: (checkOut) => set({ checkOut }),
   setDateRange: (checkIn, checkOut) => set({ checkIn, checkOut }),
   setAdults: (adults) => set({ adults }),
-  setChildren: (children) => set({ children }),
+  // The ages list follows the count: ages already picked stay, new children start unpicked
+  setChildren: (children) =>
+    set((s) => ({ children, childAges: Array.from({ length: Math.max(0, children) }, (_, i) => s.childAges[i] ?? null) })),
   setRooms: (rooms) => set({ rooms }),
   setPets: (pets) => set({ pets }),
+  setChildAge: (index, age) =>
+    set((s) => ({ childAges: s.childAges.map((current, i) => (i === index ? age : current)) })),
+  setChildAges: (ages) => set((s) => ({ childAges: Array.from({ length: s.children }, (_, i) => ages[i] ?? null) })),
   setBoatDate: (boatDate) => set({ boatDate }),
   setActiveTab: (activeTab) => set({ activeTab }),
   setIsGuestOpen: (isGuestOpen) => set({ isGuestOpen }),
@@ -77,6 +91,7 @@ export const useSearchStore = create<SearchState>()((set) => ({
       checkOut: params.checkOut ? new Date(params.checkOut) : undefined,
       adults: params.adults ? Number(params.adults) : initialState.adults,
       children: params.children ? Number(params.children) : initialState.children,
+      childAges: parseChildAges(params.ages, params.children ? Number(params.children) : initialState.children),
       rooms: params.rooms ? Number(params.rooms) : initialState.rooms,
       pets: params.pets === '1',
     }),

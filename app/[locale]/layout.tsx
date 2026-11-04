@@ -4,6 +4,7 @@ import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { QueryProvider } from "@/lib/providers/query-provider";
+import { FloatingCartBar } from "@/components/hotel/FloatingCartBar";
 import { fontVariables } from "@/lib/fonts";
 import "../globals.css";
 
@@ -88,6 +89,7 @@ export default async function RootLayout({
         <QueryProvider>
           <NextIntlClientProvider messages={messages}>
             {children}
+            <FloatingCartBar />
           </NextIntlClientProvider>
         </QueryProvider>
       </body>

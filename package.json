@@ -2,12 +2,13 @@
   "name": "nextjs-ts-tw-intl-shadcn",
   "version": "0.1.0",
   "private": true,
+  "attribution": "false",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "test:db": "tsc -p lib/db/__tests__/tsconfig.json && node node_modules/.cache/db-tests/lib/db/__tests__/db.test.js",
+    "test:db": "tsc -p lib/db/__tests__/tsconfig.json && node node_modules/.cache/db-tests/lib/db/__tests__/db.test.js && node node_modules/.cache/db-tests/lib/db/__tests__/cached-store.test.js",
     "seed:demo": "tsc -p scripts/tsconfig.json && node --env-file=.env node_modules/.cache/scripts/scripts/seed-demo-hotel.js",
     "seed:blogs": "tsc -p scripts/tsconfig.json && node --env-file=.env node_modules/.cache/scripts/scripts/seed-demo-blogs.js",
     "admin:create": "tsc -p scripts/tsconfig.json && node --env-file=.env node_modules/.cache/scripts/scripts/create-admin.js"

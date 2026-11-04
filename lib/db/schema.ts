@@ -568,6 +568,8 @@ export const TABLES: Record<string, TableDef> = {
       updated_at: { type: 'timestamptz', default: { fn: 'now' } },
       owner_id: { type: 'uuid' },
       maps_embed_url: { type: 'text' },
+      // Nearby places & connectivity: [{ type, name, distance_km }], nearest first (lib/utils/nearby-places.ts)
+      nearby_places: { type: 'json', default: [] },
       inventory_source: { type: 'text', default: 'manual' },
     },
     unique: [['slug']],
@@ -973,6 +975,8 @@ export const TABLES: Record<string, TableDef> = {
       max_children: { type: 'int', default: 0 },
       standard_occupancy: { type: 'int', default: 2 },
       extra_bed_price: { type: 'numeric', default: 0 },
+      // Per child aged 6–11 a night, every such child; NULL = extra_bed_price, 0 = free
+      child_price: { type: 'numeric' },
       bed_configuration: { type: 'text' },
       base_price: { type: 'numeric' },
       num_available_rooms: { type: 'int', default: 0 },

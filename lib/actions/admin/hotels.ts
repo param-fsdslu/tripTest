@@ -5,6 +5,7 @@ import { requireAdmin, getAdminHotelAccess } from '@/lib/utils/admin'
 import { revalidatePath } from 'next/cache'
 import { requireHotelAdminPermission, verifyHotelAccess } from './_helpers'
 import { ADMIN_PATH } from '@/lib/config/admin-path'
+import { cleanNearbyPlaces } from '@/lib/utils/nearby-places'
 
 /**
  * Get all hotels with pagination
@@ -149,6 +150,7 @@ export async function createHotel(hotelData: any) {
     // If hotel_admin, automatically set owner_id to their user ID
     const dataToInsert = {
       ...hotelData,
+      nearby_places: cleanNearbyPlaces(hotelData?.nearby_places),
       owner_id: adminAccess.role === 'hotel_admin' ? adminAccess.userId : hotelData.owner_id,
     }
 
@@ -210,6 +212,10 @@ export async function updateHotel(hotelId: string, hotelData: any) {
       await requireHotelAdminPermission('property_details')
     }
     const db = await createClient()
+    // Only clean nearby places are stored (lib/utils/nearby-places.ts)
+    if ('nearby_places' in hotelData) {
+      hotelData = { ...hotelData, nearby_places: cleanNearbyPlaces(hotelData.nearby_places) }
+    }
 
     const { data: hotel, error } = await db
       .from('hotels')

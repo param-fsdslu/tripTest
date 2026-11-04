@@ -103,7 +103,12 @@ export async function createRoomType(roomTypeData: any) {
 export async function updateRoomType(roomTypeId: string, roomTypeData: any) {
   try {
     await requireAdmin()
-    if ('base_price' in roomTypeData || 'extra_bed_price' in roomTypeData || 'standard_occupancy' in roomTypeData) {
+    if (
+      'base_price' in roomTypeData ||
+      'extra_bed_price' in roomTypeData ||
+      'child_price' in roomTypeData ||
+      'standard_occupancy' in roomTypeData
+    ) {
       await requireHotelAdminPermission('room_pricing')
     }
     if ('status' in roomTypeData || 'num_available_rooms' in roomTypeData) {

@@ -4,12 +4,15 @@
  * RoomAvailabilityCard — beside the hotel page photos: room types as large full-photo cards
  * (name, nightly price incl. taxes, capacity and availability for the searched dates over the
  * room photo). Desktop stacks two beside the gallery; phones swipe through all of them.
- * "Select" jumps to that room in the rooms list. StayDatesPicker above them sets the dates.
+ * "Select" jumps to that room in the rooms list. StayDatesPicker and StayGuestsPicker above them
+ * set the dates and the party; prices are for the rooms that party needs (lib/utils/occupancy.ts).
  */
 import Image from 'next/image'
 import { ArrowRight, BedDouble, Users } from '@/components/icons'
-import { cn, formatCurrency, getInclusivePrice } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
+import { partyNightlyPrice, roomsForParty, type Party } from '@/lib/utils/occupancy'
 import { StayDatesPicker } from './StayDatesPicker'
+import { StayGuestsPicker } from './StayGuestsPicker'
 
 export interface AvailabilityRoom {
   id: string
@@ -18,6 +21,11 @@ export interface AvailabilityRoom {
   /** Price for the searched dates (weekend/festival pricing), when dates are known */
   current_price?: number
   max_occupancy: number
+  max_adults?: number
+  max_children?: number
+  standard_occupancy?: number
+  extra_bed_price?: number
+  child_price?: number | null
   num_available_rooms: number
   status: string
   room_type_images?: Array<{ image_url: string; alt_text?: string }>
@@ -26,9 +34,12 @@ export interface AvailabilityRoom {
 /** Big cards shown beside the gallery on desktop; the rest are one click away */
 const DESKTOP_CARDS = 2
 
-function availability(room: AvailabilityRoom) {
+function availability(room: AvailabilityRoom, party: Party) {
   if (room.status !== 'available' || room.num_available_rooms === 0) {
     return { label: 'Sold out', soldOut: true, text: 'text-muted-foreground', dot: 'bg-muted-foreground/60' }
+  }
+  if (roomsForParty(room, party).error) {
+    return { label: 'Not for your group', soldOut: true, text: 'text-muted-foreground', dot: 'bg-muted-foreground/60' }
   }
   if (room.num_available_rooms <= 3) {
     return { label: `Only ${room.num_available_rooms} left`, soldOut: false, text: 'text-red-600', dot: 'bg-red-500' }
@@ -38,6 +49,8 @@ function availability(room: AvailabilityRoom) {
 
 interface RoomAvailabilityCardProps {
   rooms: AvailabilityRoom[]
+  /** The guests and rooms picked up front */
+  party: Party
   /** e.g. "Sat 17 Oct – Sun 18 Oct · 2 guests"; undefined when no dates were searched */
   stayLabel?: string
   onSelectRoom: (roomId: string) => void
@@ -45,8 +58,8 @@ interface RoomAvailabilityCardProps {
   className?: string
 }
 
-export function RoomAvailabilityCard({ rooms, stayLabel, onSelectRoom, onViewAll, className }: RoomAvailabilityCardProps) {
-  const openCount = rooms.filter((room) => !availability(room).soldOut).length
+export function RoomAvailabilityCard({ rooms, party, stayLabel, onSelectRoom, onViewAll, className }: RoomAvailabilityCardProps) {
+  const openCount = rooms.filter((room) => !availability(room, party).soldOut).length
   const hiddenOnDesktop = Math.max(rooms.length - DESKTOP_CARDS, 0)
 
   return (
@@ -55,7 +68,7 @@ export function RoomAvailabilityCard({ rooms, stayLabel, onSelectRoom, onViewAll
         <div>
           <h2 className="font-heading text-lg font-bold leading-tight text-foreground">Availability</h2>
           <p className="text-xs text-muted-foreground">
-            {stayLabel ? 'Prices and availability for your dates' : 'Standard nightly prices'}
+            {stayLabel ? 'Prices for your dates and group' : 'Nightly prices for your group'}
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-mint px-2.5 py-1 text-[11px] font-semibold text-primary">
@@ -63,14 +76,17 @@ export function RoomAvailabilityCard({ rooms, stayLabel, onSelectRoom, onViewAll
         </span>
       </div>
 
-      {/* Picking dates reloads the prices and availability below */}
+      {/* Picking dates reloads the prices and availability below; the party sets the rooms each needs */}
       <StayDatesPicker />
+      <StayGuestsPicker />
 
       {/* Phones: swipe sideways; desktop: big cards stacked to the gallery's height */}
       <div className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide sm:-mx-6 sm:scroll-px-6 sm:px-6 lg:mx-0 lg:flex-1 lg:snap-none lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">
         {rooms.map((room, index) => {
-          const status = availability(room)
+          const status = availability(room, party)
           const photo = room.room_type_images?.[0]
+          const roomsNeeded = roomsForParty(room, party).rooms
+          const price = partyNightlyPrice(room, roomsNeeded, party)
           return (
             <article
               key={room.id}
@@ -117,11 +133,11 @@ export function RoomAvailabilityCard({ rooms, stayLabel, onSelectRoom, onViewAll
                 <h3 className="text-xl font-extrabold leading-tight tracking-tight text-balance">{room.name}</h3>
                 <div className="mt-2 flex items-end justify-between gap-3">
                   <p className="leading-tight">
-                    <span className="font-heading text-2xl font-extrabold">
-                      {formatCurrency(getInclusivePrice(room.current_price ?? room.base_price))}
-                    </span>
+                    <span className="font-heading text-2xl font-extrabold">{formatCurrency(price.total)}</span>
                     <span className="ml-1 text-xs text-white/75">/ night</span>
-                    <span className="block text-[10px] text-white/65">Incl. taxes &amp; fees</span>
+                    <span className="block text-[10px] text-white/65">
+                      {roomsNeeded} {roomsNeeded === 1 ? 'room' : 'rooms'} · incl. taxes &amp; fees
+                    </span>
                   </p>
                   <button
                     type="button"
@@ -129,7 +145,7 @@ export function RoomAvailabilityCard({ rooms, stayLabel, onSelectRoom, onViewAll
                     onClick={() => onSelectRoom(room.id)}
                     className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-sm font-bold text-primary shadow-sm transition-colors hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/60 disabled:text-muted-foreground"
                   >
-                    {status.soldOut ? 'Sold out' : 'Select'}
+                    {status.soldOut ? (status.label === 'Sold out' ? 'Sold out' : 'Not available') : 'Select'}
                     {!status.soldOut && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
                   </button>
                 </div>

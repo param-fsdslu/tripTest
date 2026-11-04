@@ -118,8 +118,9 @@ export async function notifyBookingConfirmed(bookingId: string): Promise<void> {
         guestPhone: first.guest_phone ?? undefined,
         checkInDate: first.check_in_date,
         checkOutDate: first.check_out_date,
-        numAdults: Number(first.num_adults) || 1,
-        numChildren: Number(first.num_children) || 0,
+        // Each room type's booking holds its own guests: the party is their sum
+        numAdults: group.reduce((sum, b) => sum + (Number(b.num_adults) || 0), 0) || 1,
+        numChildren: group.reduce((sum, b) => sum + (Number(b.num_children) || 0), 0),
         numRooms: summary.roomCount,
         roomTypeName: summary.roomsLabel,
         totalAmount: summary.totalPaid,

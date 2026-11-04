@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/db/server'
 import { withApiLogging } from '@/lib/utils/with-api-logging'
 import { logger } from '@/lib/utils/logger'
+import { STALE_BOOKING_MINUTES } from '@/lib/config/booking-hold'
 
 /**
  * GET /api/cron/cancel-stale-bookings
@@ -17,7 +18,6 @@ import { logger } from '@/lib/utils/logger'
  * netlify/functions/cancel-stale-bookings.mjs, Vercel Cron, or any external
  * scheduler) must send `Authorization: Bearer <CRON_SECRET>`.
  */
-const STALE_BOOKING_MINUTES = 30
 
 /**
  * Never paid: 'pending' (no order yet), 'processing' (Razorpay order created, then the window
