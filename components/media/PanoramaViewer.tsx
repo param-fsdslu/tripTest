@@ -3,15 +3,17 @@
 /**
  * Interactive 360° viewer for an equirectangular (2:1) photo, in plain WebGL: every pixel's
  * view ray is turned into a longitude/latitude and looked up in the photo. Drag or swipe to
- * look around, pinch / ctrl+scroll / the buttons to zoom, arrow keys too. It turns slowly by
- * itself until touched (never with reduced motion) and only redraws while on screen.
+ * look around, pinch / ctrl+scroll / the + and − keys to zoom, arrow keys too. It turns slowly
+ * by itself until touched (never with reduced motion) and only redraws while on screen.
+ * On the photo, with no boxes behind them (by request): a full-screen button, a drag hint, the
+ * hotel name large in the bottom-left and a faint credit.
  *
  * `src` must be same-origin or CORS-enabled (WebGL can't read other images): hotel pages pass
- * the next/image optimizer URL (hotel/PanoramaTour).
+ * the next/image optimizer URL (media/PhotoLightbox).
  */
 import { useEffect, useRef, useState } from 'react'
 import NextImage, { getImageProps } from 'next/image'
-import { ImageOff, Loader2, Maximize2, Minimize2, Minus, Move, Plus } from '@/components/icons'
+import { ImageOff, Loader2, Maximize2, Minimize2, Move } from '@/components/icons'
 import { cn } from '@/lib/utils'
 
 /** A stored panorama URL served through the next/image optimizer: same-origin, so WebGL can read it */
@@ -63,9 +65,9 @@ type Status = 'loading' | 'ready' | 'error' | 'unsupported'
 
 interface PanoramaViewerProps {
   src: string
-  /** The panorama's own title, e.g. "Lobby" */
+  /** The panorama's own title, e.g. "Lobby" (read out by screen readers) */
   title?: string | null
-  /** Shown over the top-left corner of the view */
+  /** Shown large in the bottom-left corner (the hotel, or the room in a room's photos) */
   hotelName?: string | null
   className?: string
 }
@@ -78,18 +80,42 @@ function compile(gl: WebGLRenderingContext, type: number, source: string): WebGL
   return shader
 }
 
+/**
+ * Box for the CSS full screen fallback. `position: fixed` is placed against a transformed
+ * ancestor (a centred dialog) instead of the screen, so offset by that ancestor's corner.
+ */
+function viewportBox(el: HTMLElement): React.CSSProperties {
+  for (let parent = el.parentElement; parent; parent = parent.parentElement) {
+    const style = getComputedStyle(parent)
+    if (style.transform !== 'none' || style.filter !== 'none' || style.perspective !== 'none') {
+      const rect = parent.getBoundingClientRect()
+      return {
+        left: -rect.left - parent.clientLeft,
+        top: -rect.top - parent.clientTop,
+        width: window.innerWidth,
+        height: window.innerHeight,
+      }
+    }
+  }
+  return { inset: 0 }
+}
+
 export function PanoramaViewer({ src, title, hotelName, className }: PanoramaViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const zoomRef = useRef<(factor: number) => void>(() => {})
   const [status, setStatus] = useState<Status>('loading')
-  const [expanded, setExpanded] = useState(false)
+  // 'native': the browser's Fullscreen API; 'css': covering the window where that's missing (iPhone)
+  const [fullScreen, setFullScreen] = useState<'off' | 'native' | 'css'>('off')
+  const [cssBox, setCssBox] = useState<React.CSSProperties>()
   const [touched, setTouched] = useState(false)
+  const expanded = fullScreen !== 'off'
 
   useEffect(() => {
     const canvas = canvasRef.current
     const container = containerRef.current
     if (!canvas || !container) return
+    // A new photo (switching views keeps this viewer mounted) loads from scratch
+    setStatus('loading')
     const gl = canvas.getContext('webgl', { antialias: false, alpha: false })
     if (!gl) {
       setStatus('unsupported')
@@ -200,7 +226,6 @@ export function PanoramaViewer({ src, title, hotelName, className }: PanoramaVie
       interact()
       requestDraw()
     }
-    zoomRef.current = zoom
 
     const onPointerDown = (e: PointerEvent) => {
       canvas.setPointerCapture(e.pointerId)
@@ -233,9 +258,9 @@ export function PanoramaViewer({ src, title, hotelName, className }: PanoramaVie
       pinchDistance = 0
       interact()
     }
-    // Plain scrolling keeps scrolling the page; ctrl+scroll (also a trackpad pinch) zooms
+    // Plain scrolling keeps scrolling the page (unless full screen); ctrl+scroll (also a trackpad pinch) zooms
     const onWheel = (e: WheelEvent) => {
-      if (!e.ctrlKey && !document.fullscreenElement && !container.dataset.expanded) return
+      if (!e.ctrlKey && !container.dataset.expanded) return
       e.preventDefault()
       zoom(Math.exp(e.deltaY * 0.002))
     }
@@ -287,106 +312,149 @@ export function PanoramaViewer({ src, title, hotelName, className }: PanoramaVie
     }
   }, [src])
 
-  // Escape leaves the expanded view
+  // Native full screen also ends from Esc or the browser's own controls
   useEffect(() => {
-    if (!expanded) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setExpanded(false)
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [expanded])
+    const onChange = () =>
+      setFullScreen((mode) =>
+        document.fullscreenElement === containerRef.current ? 'native' : mode === 'native' ? 'off' : mode
+      )
+    document.addEventListener('fullscreenchange', onChange)
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [])
 
-  const controlClass =
-    'flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold'
+  // CSS full screen: follow window resizes; Escape leaves it without also closing a dialog around it
+  useEffect(() => {
+    if (fullScreen !== 'css') return
+    const place = () => containerRef.current && setCssBox(viewportBox(containerRef.current))
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      setFullScreen('off')
+    }
+    window.addEventListener('resize', place)
+    window.addEventListener('keydown', onKey, true)
+    return () => {
+      window.removeEventListener('resize', place)
+      window.removeEventListener('keydown', onKey, true)
+    }
+  }, [fullScreen])
+
+  const toggleFullScreen = () => {
+    const container = containerRef.current
+    if (!container) return
+    if (fullScreen === 'native') void document.exitFullscreen()
+    else if (fullScreen === 'css') setFullScreen('off')
+    else {
+      const coverWindow = () => {
+        if (document.fullscreenElement === container) return
+        setCssBox(viewportBox(container))
+        setFullScreen('css')
+      }
+      if (document.fullscreenEnabled && container.requestFullscreen) {
+        // Some embedded browsers leave the request unanswered: cover the window after a moment
+        const fallback = window.setTimeout(coverWindow, 700)
+        container.requestFullscreen().then(
+          () => window.clearTimeout(fallback),
+          () => {
+            window.clearTimeout(fallback)
+            coverWindow()
+          }
+        )
+      } else coverWindow()
+    }
+  }
+
+  // Text and icons sit straight on the photo (no boxes, by request); shadows keep them readable
+  const onPhoto = 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]'
 
   return (
-    <div
-      ref={containerRef}
-      tabIndex={0}
-      role="application"
-      aria-label={`360° view${hotelName ? ` of ${hotelName}` : ''}${title ? `: ${title}` : ''}. Drag or use the arrow keys to look around.`}
-      data-expanded={expanded ? 'true' : undefined}
-      className={cn(
-        'relative overflow-hidden bg-secondary outline-none focus-visible:ring-2 focus-visible:ring-gold',
-        expanded ? 'fixed inset-0 z-[100] rounded-none' : 'aspect-video rounded-xl',
-        className
-      )}
-    >
-      <canvas
-        ref={canvasRef}
+    // The outer box keeps the viewer's place in the page while the stage inside fills the screen
+    <div className={cn('relative aspect-video', className)}>
+      <div
+        ref={containerRef}
+        tabIndex={0}
+        role="application"
+        aria-label={`360° view${hotelName ? ` of ${hotelName}` : ''}${title ? `: ${title}` : ''}. Drag or use the arrow keys to look around.`}
+        data-expanded={expanded ? 'true' : undefined}
+        style={fullScreen === 'css' ? cssBox : undefined}
         className={cn(
-          'absolute inset-0 h-full w-full cursor-grab select-none active:cursor-grabbing',
-          // Vertical swipes still scroll the page unless the viewer fills the screen
-          expanded ? 'touch-none' : 'touch-pan-y'
+          '@container overflow-hidden bg-secondary outline-none focus-visible:ring-2 focus-visible:ring-gold',
+          fullScreen === 'css' ? 'fixed z-[100]' : 'absolute inset-0',
+          expanded ? 'rounded-none' : 'rounded-xl'
         )}
-      />
-
-      {status !== 'ready' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm text-white/80">
-          {status === 'loading' ? (
-            <Loader2 className="h-7 w-7 animate-spin" />
-          ) : (
-            <>
-              <ImageOff className="h-7 w-7" />
-              {status === 'error' ? 'The 360° photo could not be loaded.' : 'This browser cannot show 360° photos.'}
-            </>
+      >
+        <canvas
+          ref={canvasRef}
+          className={cn(
+            'absolute inset-0 h-full w-full cursor-grab select-none active:cursor-grabbing',
+            // Vertical swipes still scroll the page unless the viewer fills the screen
+            expanded ? 'touch-none' : 'touch-pan-y'
           )}
-        </div>
-      )}
+        />
 
-      {status === 'ready' && (
-        <>
+        {status !== 'ready' && (
+          // Upper half on small viewers, clear of the cards and name at the bottom
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-sm text-white/80 @max-md:bottom-1/2">
+            {status === 'loading' ? (
+              <>
+                <Loader2 className="h-7 w-7 animate-spin" />
+                <span className="text-xs font-medium">Loading 360° view…</span>
+              </>
+            ) : (
+              <>
+                <ImageOff className="h-7 w-7" />
+                {status === 'error' ? 'The 360° photo could not be loaded.' : 'This browser cannot show 360° photos.'}
+              </>
+            )}
+          </div>
+        )}
+
+        {status === 'ready' && (
           <span
             className={cn(
-              'pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-full bg-black/45 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm transition-opacity duration-500',
+              // Too crowded on very narrow viewers, where the header above already says it
+              'pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 whitespace-nowrap text-sm font-semibold transition-opacity duration-500 @max-md:text-xs @max-sm:hidden',
+              onPhoto,
               touched ? 'opacity-0' : 'opacity-100'
             )}
           >
             <Move className="h-4 w-4" />
             Drag to look around
           </span>
+        )}
 
-          <div className="pointer-events-none absolute left-3 top-3 max-w-[calc(100%-1.5rem)] rounded-lg bg-black/45 px-3 py-1.5 text-white backdrop-blur-sm">
-            {hotelName && <p className="truncate font-heading text-sm font-semibold leading-snug">{hotelName}</p>}
-            <p className={cn('truncate text-xs', hotelName ? 'text-white/80' : 'font-semibold')}>
-              360°{title ? ` · ${title}` : ''}
-            </p>
-          </div>
+        <button
+          type="button"
+          aria-label={expanded ? 'Exit full screen' : 'Full screen'}
+          onClick={toggleFullScreen}
+          className={cn(
+            'absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold @max-md:h-8 @max-md:w-8',
+            onPhoto
+          )}
+        >
+          {expanded ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+        </button>
 
-          {/* A soft shade along the whole bottom edge keeps the credit and buttons readable */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/55 to-transparent" />
+        {/* A soft shade along the bottom keeps the name and credit readable on bright photos */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/45 to-transparent" />
 
-          {/* Credit on the very bottom edge, under the buttons */}
-          <div className="pointer-events-none absolute bottom-1.5 right-3 flex items-center gap-1.5 text-[10px] font-medium leading-none text-white/90 drop-shadow">
-            <span>360 Pano</span>
-            <span className="text-white/50">|</span>
-            <span>Powered by</span>
-            <NextImage
-              src="/brand/luminexa-logo.webp"
-              alt="Luminexa"
-              width={711}
-              height={96}
-              className="h-2.5 w-auto"
-            />
-          </div>
+        {hotelName && (
+          <p
+            className={cn(
+              'pointer-events-none absolute bottom-3 left-4 line-clamp-2 max-w-[65%] font-heading text-2xl font-extrabold leading-tight @3xl:text-3xl @max-md:bottom-2 @max-md:left-3 @max-md:max-w-[60%] @max-md:text-sm',
+              onPhoto
+            )}
+          >
+            {hotelName}
+          </p>
+        )}
 
-          <div className="absolute bottom-7 right-3 flex gap-2">
-            <button type="button" aria-label="Zoom in" className={controlClass} onClick={() => zoomRef.current(0.8)}>
-              <Plus className="h-4 w-4" />
-            </button>
-            <button type="button" aria-label="Zoom out" className={controlClass} onClick={() => zoomRef.current(1.25)}>
-              <Minus className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              aria-label={expanded ? 'Exit full screen' : 'Full screen'}
-              className={controlClass}
-              onClick={() => setExpanded((v) => !v)}
-            >
-              {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-            </button>
-          </div>
-        </>
-      )}
+        {/* Credit on the bottom edge, at the right, kept quiet */}
+        <div className="pointer-events-none absolute bottom-2 right-3 flex items-center gap-1.5 text-[9px] leading-none text-white opacity-60">
+          <span>Powered by</span>
+          <NextImage src="/brand/luminexa-logo.webp" alt="Luminexa" width={711} height={96} className="h-2 w-auto" />
+        </div>
+      </div>
     </div>
   )
 }

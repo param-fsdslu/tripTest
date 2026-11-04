@@ -25,6 +25,7 @@ export async function getHotelRoomTypes(hotelId: string) {
           alt_text,
           display_order
         ),
+        room_type_panoramas(id, image_url, title, display_order),
         room_type_amenities(
           id,
           amenity:amenities(

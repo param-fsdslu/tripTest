@@ -139,6 +139,15 @@ export interface HotelPanorama {
   display_order: number;
 }
 
+/** A 360° photo of a room type, opened from its room card on the hotel page */
+export interface RoomTypePanorama {
+  id: string;
+  room_type_id: string;
+  image_url: string;
+  title: string | null;
+  display_order: number;
+}
+
 export interface HotelAmenity {
   id: string;
   hotel_id: string;
@@ -174,6 +183,7 @@ export interface RoomType {
 
 export interface RoomTypeWithDetails extends RoomType {
   room_type_images: RoomTypeImage[];
+  room_type_panoramas?: RoomTypePanorama[];
   room_type_amenities: RoomTypeAmenity[];
   current_price?: number;
 }

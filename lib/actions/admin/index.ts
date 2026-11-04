@@ -13,6 +13,7 @@ export {
 } from './hotels';
 export { addHotelImage, uploadHotelImage, deleteHotelImage } from './hotel-images';
 export { uploadHotelPanorama, deleteHotelPanorama } from './hotel-panoramas';
+export { uploadRoomTypePanorama, deleteRoomTypePanorama } from './room-type-panoramas';
 export { getAllAmenities, addHotelAmenity, removeHotelAmenity } from './hotel-amenities';
 export {
   getHotelRoomTypes,

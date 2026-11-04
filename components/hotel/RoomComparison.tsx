@@ -1,10 +1,16 @@
 'use client';
 
-import { useState, type Dispatch, type SetStateAction } from 'react';
+/**
+ * Hotel page rooms list: one card per room type (photo, details, price, add to booking) and a
+ * side-by-side comparison of up to 3 rooms picked with each card's Compare checkbox. Controls
+ * here use small 6px corners (`rounded-md`), not pills, by request.
+ */
+import { useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -18,21 +24,15 @@ import {
   Maximize2,
   Check,
   X,
-  Info,
   ChevronDown,
   ChevronUp,
   ZoomIn,
   ShoppingCart,
   Minus,
   Plus,
+  Rotate3d,
 } from '@/components/icons';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { getInclusivePrice } from '@/lib/utils';
+import { cn, getInclusivePrice } from '@/lib/utils';
 import { RoomImageGallery } from './RoomImageGallery';
 import { getAmenityIcon } from '@/lib/utils/amenityIcons';
 
@@ -72,6 +72,12 @@ interface RoomType {
     alt_text?: string;
     display_order: number;
   }>;
+  room_type_panoramas?: Array<{
+    id: string;
+    image_url: string;
+    title: string | null;
+    display_order: number;
+  }>;
 }
 
 interface RoomCartSelection {
@@ -79,9 +85,21 @@ interface RoomCartSelection {
   qty: number;
 }
 
+const MAX_COMPARE = 3;
+
 /** Effective per-night price — reflects weekend/festival pricing for the selected stay when dates are known. */
 function getDisplayPrice(room: RoomType): number {
   return room.current_price ?? room.base_price;
+}
+
+/** "2 adults, 1 child" */
+function guestMix(room: RoomType): string {
+  const adults = `${room.max_adults} ${room.max_adults === 1 ? 'adult' : 'adults'}`;
+  return `${adults}, ${room.max_children} ${room.max_children === 1 ? 'child' : 'children'}`;
+}
+
+function amenitiesOf(room: RoomType) {
+  return room.room_type_amenities || room.room_amenities || [];
 }
 
 interface RoomComparisonProps {
@@ -94,7 +112,6 @@ interface RoomComparisonProps {
 
 export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomComparisonProps) {
   const [expandedRooms, setExpandedRooms] = useState<Set<string>>(new Set());
-  const [compareMode, setCompareMode] = useState(false);
   const [selectedForCompare, setSelectedForCompare] = useState<Set<string>>(new Set());
   const [showCompareDialog, setShowCompareDialog] = useState(false);
 
@@ -114,15 +131,12 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
   };
 
   const toggleCompare = (roomId: string) => {
-    const newSelected = new Set(selectedForCompare);
-    if (newSelected.has(roomId)) {
-      newSelected.delete(roomId);
-    } else {
-      if (newSelected.size < 3) {
-        newSelected.add(roomId);
-      }
-    }
-    setSelectedForCompare(newSelected);
+    setSelectedForCompare((prev) => {
+      const next = new Set(prev);
+      if (next.has(roomId)) next.delete(roomId);
+      else if (next.size < MAX_COMPARE) next.add(roomId);
+      return next;
+    });
   };
 
   // Cart helpers
@@ -154,136 +168,230 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
     onBookRooms(selections);
   };
 
-  const roomsToDisplay = compareMode
-    ? sortedRooms.filter((room) => selectedForCompare.has(room.id))
-    : sortedRooms;
-
   const selectedRooms = sortedRooms.filter((room) => selectedForCompare.has(room.id));
+  const cartRoomCount = Array.from(cart.values()).reduce((sum, qty) => sum + qty, 0);
 
   const allAmenities = new Set<string>();
   selectedRooms.forEach((room) => {
-    (room.room_type_amenities || room.room_amenities || []).forEach((amenity: any) => {
+    amenitiesOf(room).forEach((amenity: any) => {
       if (amenity.amenity?.name) {
         allAmenities.add(amenity.amenity.name);
       }
     });
   });
 
+  /** Quantity stepper + Remove, or Add to Booking: the same on the cards and in the comparison */
+  const bookingControls = (room: RoomType, fullWidth = false) => {
+    const isUnavailable = room.status !== 'available' || room.num_available_rooms === 0;
+    if (!cart.has(room.id)) {
+      return (
+        <Button
+          onClick={() => addToCart(room.id)}
+          disabled={isUnavailable}
+          className={cn('gap-2 rounded-md px-5', fullWidth && 'w-full')}
+        >
+          <ShoppingCart className="w-4 h-4" />
+          Add to Booking
+        </Button>
+      );
+    }
+    const cartQty = cart.get(room.id) ?? 1;
+    return (
+      <div className="flex items-center gap-2">
+        <div className="flex items-center border rounded-md overflow-hidden">
+          <button
+            type="button"
+            aria-label={`One fewer ${room.name}`}
+            className="px-2 py-1.5 hover:bg-muted transition-colors disabled:opacity-40"
+            onClick={() => updateQty(room.id, -1, room.num_available_rooms)}
+          >
+            <Minus className="w-3.5 h-3.5" />
+          </button>
+          <span className="px-3 text-sm font-medium min-w-8 text-center">{cartQty}</span>
+          <button
+            type="button"
+            aria-label={`One more ${room.name}`}
+            className="px-2 py-1.5 hover:bg-muted transition-colors disabled:opacity-40"
+            onClick={() => updateQty(room.id, 1, room.num_available_rooms)}
+            disabled={cartQty >= room.num_available_rooms}
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => removeFromCart(room.id)}
+          className="rounded-md text-destructive border-destructive/30 hover:bg-destructive/5"
+        >
+          Remove
+        </Button>
+      </div>
+    );
+  };
+
+  // Comparison rows; a row every picked room leaves empty is left out
+  const compareRows: { label: string; render: (room: RoomType) => ReactNode }[] = [
+    {
+      label: 'Price per night',
+      render: (room) => (
+        <>
+          <p className="text-xl font-bold text-primary">
+            ₹{getInclusivePrice(getDisplayPrice(room)).toLocaleString('en-IN')}
+          </p>
+          <p className="text-xs text-muted-foreground">incl. taxes & fees</p>
+        </>
+      ),
+    },
+    {
+      label: 'Guests',
+      render: (room) => (
+        <>
+          Up to {room.max_occupancy}
+          <span className="block text-xs text-muted-foreground">{guestMix(room)}</span>
+        </>
+      ),
+    },
+    ...(selectedRooms.some((room) => room.bed_configuration)
+      ? [{ label: 'Beds', render: (room: RoomType) => room.bed_configuration || '—' }]
+      : []),
+    ...(selectedRooms.some((room) => room.size_sqm)
+      ? [{ label: 'Room size', render: (room: RoomType) => (room.size_sqm ? `${room.size_sqm} m²` : '—') }]
+      : []),
+    {
+      label: 'Availability',
+      render: (room) =>
+        room.num_available_rooms === 0 ? (
+          <span className="font-medium text-destructive">Sold out</span>
+        ) : (
+          <span className={cn('font-medium', room.num_available_rooms <= 3 ? 'text-destructive' : 'text-primary')}>
+            {room.num_available_rooms} {room.num_available_rooms === 1 ? 'room' : 'rooms'} left
+          </span>
+        ),
+    },
+    ...(selectedRooms.some((room) => room.description)
+      ? [
+          {
+            label: 'About the room',
+            render: (room: RoomType) => (
+              <span className="text-muted-foreground">{room.description || '—'}</span>
+            ),
+          },
+        ]
+      : []),
+    ...(allAmenities.size > 0
+      ? [
+          {
+            label: 'Amenities',
+            render: (room: RoomType) => (
+              <ul className="space-y-1.5">
+                {Array.from(allAmenities).map((amenityName) => {
+                  const hasAmenity = amenitiesOf(room).some((a: any) => a.amenity?.name === amenityName);
+                  const Icon = getAmenityIcon(amenityName);
+                  return (
+                    <li key={amenityName} className="flex items-start gap-2 text-xs">
+                      {hasAmenity ? (
+                        <Icon className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                      ) : (
+                        <X className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0 mt-0.5" />
+                      )}
+                      <span className={hasAmenity ? 'text-foreground' : 'text-muted-foreground line-through'}>
+                        {amenityName}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ),
+          },
+        ]
+      : []),
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Header with Compare Toggle */}
-      <div className="flex items-center justify-between mb-1">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
         <div>
           <h2 className="text-xl font-bold text-foreground">Available Rooms & Prices</h2>
           <p className="text-xs text-muted-foreground mt-1">
             Add one or more room types to your booking
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs px-2 py-1">
-            {rooms.length} room {rooms.length === 1 ? 'type' : 'types'}
-          </Badge>
-          {selectedForCompare.size > 0 && (
-            <>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setShowCompareDialog(true)}
-                className="gap-1.5"
-              >
-                Compare {selectedForCompare.size}
-              </Button>
-              <Button
-                variant={compareMode ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setCompareMode(!compareMode)}
-                className="gap-1.5"
-              >
-                {compareMode ? 'Show All' : 'Filter View'}
-              </Button>
-            </>
-          )}
-        </div>
+        <p className="text-sm text-muted-foreground">
+          {rooms.length} room {rooms.length === 1 ? 'type' : 'types'}
+        </p>
       </div>
 
-      {/* Compare Mode Info */}
-      {!compareMode && selectedForCompare.size > 0 && (
-        <div className="bg-mint border border-border rounded-lg p-3 text-xs text-secondary">
-          <p className="flex items-center gap-1.5">
-            <Info className="w-3.5 h-3.5 shrink-0" />
-            <span>
-              <strong>{selectedForCompare.size} room{selectedForCompare.size > 1 ? 's' : ''} selected.</strong>{' '}
-              Click "Compare {selectedForCompare.size}" to view side-by-side or select up to {3 - selectedForCompare.size} more.
-            </span>
+      {/* Compare bar: shows once a room is ticked */}
+      {selectedForCompare.size > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-primary/25 bg-mint px-4 py-3">
+          <p className="text-sm text-secondary">
+            <span className="font-semibold">
+              {selectedForCompare.size} of {MAX_COMPARE} rooms picked.
+            </span>{' '}
+            {selectedForCompare.size < 2 ? 'Tick one more to compare.' : 'Ready to compare side by side.'}
           </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedForCompare(new Set())}
+              className="rounded-md text-muted-foreground"
+            >
+              Clear
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setShowCompareDialog(true)}
+              disabled={selectedForCompare.size < 2}
+              className="rounded-md"
+            >
+              Compare {selectedForCompare.size} rooms
+            </Button>
+          </div>
         </div>
       )}
 
       {/* Room Cards */}
       <div className="space-y-4">
-        {roomsToDisplay.map((room) => {
+        {sortedRooms.map((room) => {
           const isExpanded = expandedRooms.has(room.id);
           const isSelectedForCompare = selectedForCompare.has(room.id);
+          const compareFull = !isSelectedForCompare && selectedForCompare.size >= MAX_COMPARE;
           const isCheapest = getDisplayPrice(room) === Math.min(...rooms.map(getDisplayPrice));
           const primaryImage = room.room_type_images?.[0];
           const roomImages = room.room_type_images ?? [];
+          // 360° photos follow the photos in the room's photo viewer
+          const roomPanoramas = room.room_type_panoramas ?? [];
+          const hasMedia = roomImages.length > 0 || roomPanoramas.length > 0;
           const isLightboxOpen = lightbox?.roomId === room.id;
           const inCart = cart.has(room.id);
-          const cartQty = cart.get(room.id) ?? 1;
-          const isUnavailable = room.status !== 'available' || room.num_available_rooms === 0;
+          const amenities = amenitiesOf(room);
 
           return (
             <Card
               key={room.id}
               id={`room-${room.id}`}
-              className={`overflow-hidden transition-all duration-300 ${
-                inCart ? 'ring-2 ring-primary' : ''
-              } ${isCheapest && !inCart ? 'border-primary border-2' : ''}`}
+              className={cn(
+                'gap-0 overflow-hidden rounded-md py-0 transition-all duration-300',
+                inCart && 'ring-2 ring-primary',
+                isCheapest && !inCart && 'border-primary border-2'
+              )}
             >
               <div className="relative">
                 {/* Best Value Badge */}
                 {isCheapest && (
-                  <Badge className="absolute top-3 left-3 z-10 bg-gold text-secondary hover:bg-gold">
+                  <Badge className="absolute top-5 left-5 z-10 rounded-md bg-gold text-secondary hover:bg-gold">
                     Best Value
                   </Badge>
                 )}
 
-                {/* Compare Checkbox with Tooltip */}
-                <div className="absolute top-3 right-3 z-10">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant={isSelectedForCompare ? 'default' : 'secondary'}
-                          size="sm"
-                          onClick={() => toggleCompare(room.id)}
-                          disabled={!isSelectedForCompare && selectedForCompare.size >= 3}
-                        >
-                          {isSelectedForCompare ? (
-                            <><Check className="w-3 h-3 mr-1" /> Selected</>
-                          ) : (
-                            'Compare'
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-xs">
-                          {isSelectedForCompare
-                            ? 'Click to remove from comparison'
-                            : selectedForCompare.size >= 3
-                            ? 'Maximum 3 rooms can be compared'
-                            : 'Click to add to comparison (up to 3 rooms)'}
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
                   {/* Room Image */}
                   <div
-                    className="relative h-48 md:h-full rounded-lg overflow-hidden cursor-pointer group"
-                    onClick={() => roomImages.length > 0 && setLightbox({ roomId: room.id, index: 0 })}
+                    className="relative h-48 md:h-full min-h-40 rounded-md overflow-hidden cursor-pointer group"
+                    onClick={() => hasMedia && setLightbox({ roomId: room.id, index: 0 })}
                   >
                     {primaryImage ? (
                       <>
@@ -298,19 +406,35 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
                             <ZoomIn className="w-5 h-5 text-foreground" />
                           </div>
                         </div>
-                        {roomImages.length > 1 && (
-                          <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full">
-                            1 / {roomImages.length}
-                          </div>
-                        )}
                       </>
                     ) : (
                       <div className="w-full h-full bg-border flex items-center justify-center">
                         <Bed className="w-12 h-12 text-muted-foreground" />
                       </div>
                     )}
+                    <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                      {roomImages.length > 1 && (
+                        <div className="bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-md">
+                          1 / {roomImages.length}
+                        </div>
+                      )}
+                      {roomPanoramas.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLightbox({ roomId: room.id, index: roomImages.length });
+                          }}
+                          aria-label={`${room.name}: 360° view`}
+                          className="flex items-center gap-1 rounded-md bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-black/75"
+                        >
+                          <Rotate3d className="w-3.5 h-3.5" />
+                          360°
+                        </button>
+                      )}
+                    </div>
                     {room.num_available_rooms <= 3 && (
-                      <Badge variant="destructive" className="absolute bottom-2 left-2">
+                      <Badge variant="destructive" className="absolute bottom-2 left-2 rounded-md">
                         Only {room.num_available_rooms} left!
                       </Badge>
                     )}
@@ -319,7 +443,23 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
                   {/* Room Details */}
                   <div className="md:col-span-2 min-w-0 space-y-3">
                     <div>
-                      <h3 className="text-xl font-bold text-foreground mb-1">{room.name}</h3>
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-xl font-bold text-foreground mb-1">{room.name}</h3>
+                        <label
+                          title={compareFull ? `You can compare up to ${MAX_COMPARE} rooms` : undefined}
+                          className={cn(
+                            'mt-1 flex shrink-0 select-none items-center gap-2 text-sm text-muted-foreground',
+                            compareFull ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:text-foreground'
+                          )}
+                        >
+                          <Checkbox
+                            checked={isSelectedForCompare}
+                            onCheckedChange={() => toggleCompare(room.id)}
+                            disabled={compareFull}
+                          />
+                          Compare
+                        </label>
+                      </div>
                       {room.description && (
                         <p className="text-sm text-muted-foreground line-clamp-2">{room.description}</p>
                       )}
@@ -329,8 +469,7 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Users className="w-4 h-4" />
                         <span>
-                          Up to {room.max_occupancy} guests ({room.max_adults} adults,{' '}
-                          {room.max_children} children)
+                          Up to {room.max_occupancy} guests ({guestMix(room)})
                         </span>
                       </div>
                       {room.bed_configuration && (
@@ -347,24 +486,21 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
                       )}
                     </div>
 
-                    {((room.room_type_amenities && room.room_type_amenities.length > 0) ||
-                      (room.room_amenities && room.room_amenities.length > 0)) && (
+                    {amenities.length > 0 && (
                       <div className="flex flex-wrap gap-2">
-                        {(room.room_type_amenities || room.room_amenities || [])
-                          .slice(0, 4)
-                          .map((amenity: any) => {
-                            const name = amenity.amenity?.name || 'Amenity';
-                            const Icon = getAmenityIcon(name);
-                            return (
-                              <Badge key={amenity.id} variant="outline" className="text-xs gap-1">
-                                <Icon className="w-3 h-3" />
-                                {name}
-                              </Badge>
-                            );
-                          })}
-                        {(room.room_type_amenities || room.room_amenities || []).length > 4 && (
-                          <Badge variant="secondary" className="text-xs">
-                            +{(room.room_type_amenities || room.room_amenities || []).length - 4} more
+                        {amenities.slice(0, 4).map((amenity: any) => {
+                          const name = amenity.amenity?.name || 'Amenity';
+                          const Icon = getAmenityIcon(name);
+                          return (
+                            <Badge key={amenity.id} variant="outline" className="rounded-md text-xs gap-1">
+                              <Icon className="w-3 h-3" />
+                              {name}
+                            </Badge>
+                          );
+                        })}
+                        {amenities.length > 4 && (
+                          <Badge variant="secondary" className="rounded-md text-xs">
+                            +{amenities.length - 4} more
                           </Badge>
                         )}
                       </div>
@@ -379,7 +515,7 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
                           </span>
                           <span className="text-sm text-muted-foreground">/ night</span>
                           {room.current_price != null && room.current_price !== room.base_price && (
-                            <Badge variant="outline" className="text-[10px]">For selected dates</Badge>
+                            <Badge variant="outline" className="rounded-md text-[10px]">For selected dates</Badge>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">incl. taxes & fees</p>
@@ -390,7 +526,7 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
                           variant="outline"
                           size="sm"
                           onClick={() => toggleExpand(room.id)}
-                          className="gap-1"
+                          className="gap-1 rounded-md"
                         >
                           {isExpanded ? (
                             <>Less <ChevronUp className="w-4 h-4" /></>
@@ -398,47 +534,7 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
                             <>More details <ChevronDown className="w-4 h-4" /></>
                           )}
                         </Button>
-
-                        {inCart ? (
-                          <div className="flex items-center gap-2">
-                            {/* Quantity stepper */}
-                            <div className="flex items-center border rounded-md overflow-hidden">
-                              <button
-                                className="px-2 py-1.5 hover:bg-muted transition-colors disabled:opacity-40"
-                                onClick={() => updateQty(room.id, -1, room.num_available_rooms)}
-                              >
-                                <Minus className="w-3.5 h-3.5" />
-                              </button>
-                              <span className="px-3 text-sm font-medium min-w-8 text-center">
-                                {cartQty}
-                              </span>
-                              <button
-                                className="px-2 py-1.5 hover:bg-muted transition-colors disabled:opacity-40"
-                                onClick={() => updateQty(room.id, 1, room.num_available_rooms)}
-                                disabled={cartQty >= room.num_available_rooms}
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => removeFromCart(room.id)}
-                              className="text-destructive border-destructive/30 hover:bg-destructive/5"
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            onClick={() => addToCart(room.id)}
-                            disabled={isUnavailable}
-                            className="px-6 gap-2"
-                          >
-                            <ShoppingCart className="w-4 h-4" />
-                            Add to Booking
-                          </Button>
-                        )}
+                        {bookingControls(room)}
                       </div>
                     </div>
                   </div>
@@ -450,7 +546,7 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
                     <div className="pt-4">
                       <h4 className="font-semibold text-foreground mb-3">All Amenities</h4>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {(room.room_type_amenities || room.room_amenities || []).map((amenity: any) => {
+                        {amenities.map((amenity: any) => {
                           const name = amenity.amenity?.name || 'Amenity';
                           const Icon = getAmenityIcon(name);
                           return (
@@ -463,9 +559,10 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
                       </div>
                     </div>
 
-                    {roomImages.length > 0 && (
+                    {hasMedia && (
                       <RoomImageGallery
                         images={roomImages}
+                        panoramas={roomPanoramas}
                         roomName={room.name}
                         initialIndex={isLightboxOpen ? lightbox!.index : -1}
                         onClose={() => setLightbox(null)}
@@ -475,9 +572,10 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
                   </div>
                 )}
 
-                {roomImages.length > 0 && !isExpanded && isLightboxOpen && (
+                {hasMedia && !isExpanded && isLightboxOpen && (
                   <RoomImageGallery
                     images={roomImages}
+                    panoramas={roomPanoramas}
                     roomName={room.name}
                     initialIndex={lightbox!.index}
                     onClose={() => setLightbox(null)}
@@ -490,294 +588,109 @@ export function RoomComparison({ rooms, cart, setCart, onBookRooms }: RoomCompar
         })}
       </div>
 
-      {compareMode && selectedForCompare.size === 0 && (
-        <div className="text-center py-12 text-muted-foreground">
-          <p>No rooms selected for comparison</p>
-          <Button variant="outline" className="mt-4" onClick={() => setCompareMode(false)}>
-            Back to all rooms
-          </Button>
-        </div>
-      )}
-
-      {/* Comparison Dialog */}
-      <Dialog open={showCompareDialog} onOpenChange={setShowCompareDialog}>
-        <DialogContent className="w-[95vw]! max-w-[1600px]! h-[90vh] flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b">
-            <DialogTitle className="text-2xl">Compare Rooms</DialogTitle>
+      {/* Comparison: the picked rooms side by side (the label column stays put when phones scroll sideways) */}
+      <Dialog open={showCompareDialog && selectedRooms.length > 1} onOpenChange={setShowCompareDialog}>
+        <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden rounded-md p-0 sm:max-w-5xl">
+          <DialogHeader className="border-b px-5 py-4 text-left">
+            <DialogTitle className="text-xl">Compare rooms</DialogTitle>
             <DialogDescription>
-              Side-by-side comparison of {selectedRooms.length} selected room
-              {selectedRooms.length > 1 ? 's' : ''}
+              {selectedRooms.length} rooms side by side · prices include taxes & fees
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-auto px-6 pb-6">
-            <table className="w-full border-collapse">
-              <thead className="sticky top-0 z-20 bg-white">
-                <tr className="border-b-2 border-border">
-                  <th className="text-left p-3 bg-background font-bold sticky left-0 z-30 min-w-[140px] border-r-2 border-border">
-                    Feature
-                  </th>
-                  {selectedRooms.map((room) => (
-                    <th key={room.id} className="p-3 bg-background min-w-[280px] align-top">
-                      <div className="space-y-2">
-                        <div className="font-bold text-base text-foreground line-clamp-2">{room.name}</div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleCompare(room.id)}
-                          className="text-xs h-7"
+          <div className="min-h-0 flex-1 overflow-auto">
+            {/* Fixed layout: every room column gets the same width, whatever its text */}
+            <table
+              className="w-full table-fixed border-collapse text-sm"
+              style={{ minWidth: `${7 + selectedRooms.length * 12}rem` }}
+            >
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="sticky left-0 z-10 w-28 border-r border-border bg-card p-3 sm:w-36" />
+                  {selectedRooms.map((room) => {
+                    const photo = room.room_type_images?.[0];
+                    const hasMedia = (room.room_type_images?.length ?? 0) + (room.room_type_panoramas?.length ?? 0) > 0;
+                    return (
+                      <th key={room.id} className="p-3 text-left align-top font-normal">
+                        <button
+                          type="button"
+                          disabled={!hasMedia}
+                          onClick={() => setLightbox({ roomId: room.id, index: 0 })}
+                          aria-label={`${room.name} photos`}
+                          className="relative block h-28 w-full overflow-hidden rounded-md bg-border disabled:cursor-default"
                         >
-                          <X className="w-3 h-3 mr-1" /> Remove
-                        </Button>
-                      </div>
-                    </th>
-                  ))}
+                          {photo ? (
+                            <Image src={photo.image_url} alt="" fill sizes="280px" className="object-cover" />
+                          ) : (
+                            <Bed className="absolute inset-0 m-auto w-10 h-10 text-muted-foreground" />
+                          )}
+                        </button>
+                        <div className="mt-2 flex items-start justify-between gap-2">
+                          <span className="font-heading text-base font-bold leading-snug text-foreground">{room.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleCompare(room.id)}
+                            className="shrink-0 text-xs text-muted-foreground hover:text-destructive"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
-                {/* Images */}
-                <tr className="border-b border-border">
-                  <td className="p-3 font-semibold bg-background sticky left-0 z-10 border-r-2 border-border">Room Image</td>
-                  {selectedRooms.map((room) => {
-                    const roomImages = room.room_type_images ?? [];
-                    const isLightboxOpen = lightbox?.roomId === room.id;
-                    return (
-                      <td key={room.id} className="p-3">
-                        <div
-                          className="relative h-48 rounded-lg overflow-hidden cursor-pointer group"
-                          onClick={() => roomImages.length > 0 && setLightbox({ roomId: room.id, index: 0 })}
-                        >
-                          {room.room_type_images?.[0] ? (
-                            <>
-                              <Image
-                                src={room.room_type_images[0].image_url}
-                                alt={room.room_type_images[0].alt_text || room.name}
-                                fill
-                                className="object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors duration-200 flex items-center justify-center">
-                                <div className="bg-white/90 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                  <ZoomIn className="w-5 h-5 text-foreground" />
-                                </div>
-                              </div>
-                            </>
-                          ) : (
-                            <div className="w-full h-full bg-border flex items-center justify-center">
-                              <Bed className="w-12 h-12 text-muted-foreground" />
-                            </div>
-                          )}
-                        </div>
-                        {roomImages.length > 1 && (
-                          <p
-                            className="text-xs text-primary mt-2 text-center cursor-pointer hover:underline"
-                            onClick={() => setLightbox({ roomId: room.id, index: 0 })}
-                          >
-                            View all {roomImages.length} photos
-                          </p>
-                        )}
-                        {roomImages.length > 0 && isLightboxOpen && (
-                          <RoomImageGallery
-                            images={roomImages}
-                            roomName={room.name}
-                            initialIndex={lightbox!.index}
-                            onClose={() => setLightbox(null)}
-                            showThumbnails={false}
-                          />
-                        )}
+                {compareRows.map((row) => (
+                  <tr key={row.label} className="border-b border-border">
+                    <th
+                      scope="row"
+                      className="sticky left-0 z-10 border-r border-border bg-card p-3 text-left align-top font-medium text-muted-foreground"
+                    >
+                      {row.label}
+                    </th>
+                    {selectedRooms.map((room) => (
+                      <td key={room.id} className="p-3 align-top text-foreground">
+                        {row.render(room)}
                       </td>
-                    );
-                  })}
-                </tr>
-
-                {/* Price */}
-                <tr className="border-b border-border bg-mint">
-                  <td className="p-3 font-semibold bg-primary/10 sticky left-0 z-10 border-r-2 border-border">Price per Night</td>
-                  {selectedRooms.map((room) => (
-                    <td key={room.id} className="p-3">
-                      <div className="text-2xl font-bold text-primary">
-                        ₹{getInclusivePrice(getDisplayPrice(room)).toLocaleString('en-IN')}
-                      </div>
-                      <div className="text-xs text-muted-foreground">incl. taxes & fees</div>
-                    </td>
-                  ))}
-                </tr>
-
-                {/* Description */}
-                <tr className="border-b border-border">
-                  <td className="p-3 font-semibold bg-background sticky left-0 z-10 border-r-2 border-border">Description</td>
-                  {selectedRooms.map((room) => (
-                    <td key={room.id} className="p-3">
-                      <p className="text-sm text-foreground">{room.description || 'N/A'}</p>
-                    </td>
-                  ))}
-                </tr>
-
-                {/* Size */}
-                <tr className="border-b border-border">
-                  <td className="p-3 font-semibold bg-background sticky left-0 z-10 border-r-2 border-border">Room Size</td>
-                  {selectedRooms.map((room) => (
-                    <td key={room.id} className="p-3">
-                      <div className="flex items-center gap-2">
-                        <Maximize2 className="w-4 h-4 text-primary" />
-                        <span className="text-sm">{room.size_sqm ? `${room.size_sqm} m²` : 'N/A'}</span>
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-
-                {/* Max Occupancy */}
-                <tr className="border-b border-border">
-                  <td className="p-3 font-semibold bg-background sticky left-0 z-10 border-r-2 border-border">Max Occupancy</td>
-                  {selectedRooms.map((room) => (
-                    <td key={room.id} className="p-3">
-                      <div className="flex items-start gap-2">
-                        <Users className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                        <span className="text-sm">
-                          {room.max_occupancy} guests<br />
-                          <span className="text-xs text-muted-foreground">
-                            ({room.max_adults} adults, {room.max_children} children)
-                          </span>
-                        </span>
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-
-                {/* Bed Configuration */}
-                <tr className="border-b border-border">
-                  <td className="p-3 font-semibold bg-background sticky left-0 z-10 border-r-2 border-border">Bed Configuration</td>
-                  {selectedRooms.map((room) => (
-                    <td key={room.id} className="p-3">
-                      <div className="flex items-center gap-2">
-                        <Bed className="w-4 h-4 text-primary" />
-                        <span className="text-sm">{room.bed_configuration || 'N/A'}</span>
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-
-                {/* Availability */}
-                <tr className="border-b border-border">
-                  <td className="p-3 font-semibold bg-background sticky left-0 z-10 border-r-2 border-border">Availability</td>
-                  {selectedRooms.map((room) => (
-                    <td key={room.id} className="p-3">
-                      <Badge
-                        variant={room.num_available_rooms > 3 ? 'default' : 'destructive'}
-                        className="text-xs"
-                      >
-                        {room.num_available_rooms} room{room.num_available_rooms > 1 ? 's' : ''} left
-                      </Badge>
-                    </td>
-                  ))}
-                </tr>
-
-                {/* Amenities */}
-                <tr className="border-b border-border">
-                  <td className="p-3 font-semibold bg-background sticky left-0 z-10 align-top border-r-2 border-border">Amenities</td>
+                    ))}
+                  </tr>
+                ))}
+                <tr>
+                  <th
+                    scope="row"
+                    className="sticky left-0 z-10 border-r border-border bg-card p-3 text-left align-top font-medium text-muted-foreground"
+                  >
+                    Your booking
+                  </th>
                   {selectedRooms.map((room) => (
                     <td key={room.id} className="p-3 align-top">
-                      <div className="space-y-1.5 max-h-60 overflow-y-auto">
-                        {Array.from(allAmenities).map((amenityName) => {
-                          const hasAmenity = (room.room_type_amenities || room.room_amenities || []).some(
-                            (a: any) => a.amenity?.name === amenityName
-                          );
-                          const Icon = getAmenityIcon(amenityName);
-                          return (
-                            <div key={amenityName} className="flex items-start gap-2 text-xs">
-                              {hasAmenity ? (
-                                <Icon className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-                              ) : (
-                                <X className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0 mt-0.5" />
-                              )}
-                              <span className={hasAmenity ? 'text-foreground' : 'text-muted-foreground'}>
-                                {amenityName}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      {bookingControls(room, true)}
+                      {cart.has(room.id) && (
+                        <p className="mt-2 flex items-center gap-1 text-xs text-primary">
+                          <Check className="w-3.5 h-3.5" /> Added to your booking
+                        </p>
+                      )}
                     </td>
                   ))}
-                </tr>
-
-                {/* Add to Booking */}
-                <tr className="border-t-2 border-border bg-background">
-                  <td className="p-3 font-semibold bg-muted sticky left-0 z-10 border-r-2 border-border">Book</td>
-                  {selectedRooms.map((room) => {
-                    const inCart = cart.has(room.id);
-                    const cartQty = cart.get(room.id) ?? 1;
-                    const isUnavailable = room.status !== 'available' || room.num_available_rooms === 0;
-                    return (
-                      <td key={room.id} className="p-3">
-                        {inCart ? (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2 justify-center">
-                              <div className="flex items-center border rounded-md overflow-hidden">
-                                <button
-                                  className="px-2 py-1.5 hover:bg-muted transition-colors"
-                                  onClick={() => updateQty(room.id, -1, room.num_available_rooms)}
-                                >
-                                  <Minus className="w-3.5 h-3.5" />
-                                </button>
-                                <span className="px-3 text-sm font-medium min-w-8 text-center">
-                                  {cartQty}
-                                </span>
-                                <button
-                                  className="px-2 py-1.5 hover:bg-muted transition-colors disabled:opacity-40"
-                                  onClick={() => updateQty(room.id, 1, room.num_available_rooms)}
-                                  disabled={cartQty >= room.num_available_rooms}
-                                >
-                                  <Plus className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => removeFromCart(room.id)}
-                                className="text-destructive border-destructive/30 hover:bg-destructive/5"
-                              >
-                                Remove
-                              </Button>
-                            </div>
-                            <Badge variant="secondary" className="w-full justify-center text-xs">
-                              <Check className="w-3 h-3 mr-1" /> Added to booking
-                            </Badge>
-                          </div>
-                        ) : (
-                          <Button
-                            onClick={() => addToCart(room.id)}
-                            disabled={isUnavailable}
-                            className="w-full gap-2"
-                            size="lg"
-                          >
-                            <ShoppingCart className="w-4 h-4" />
-                            Add to Booking
-                          </Button>
-                        )}
-                      </td>
-                    );
-                  })}
                 </tr>
               </tbody>
             </table>
           </div>
 
-          {/* Dialog footer: proceed if cart has items */}
           {cart.size > 0 && (
-            <div className="px-6 py-4 border-t bg-background flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4 border-t bg-background px-5 py-3">
               <p className="text-sm text-muted-foreground">
-                {Array.from(cart.values()).reduce((s, q) => s + q, 0)} room
-                {Array.from(cart.values()).reduce((s, q) => s + q, 0) !== 1 ? 's' : ''} in booking
+                {cartRoomCount} {cartRoomCount === 1 ? 'room' : 'rooms'} in your booking
               </p>
               <Button
-                size="lg"
                 onClick={() => {
                   setShowCompareDialog(false);
                   handleBookNow();
                 }}
-                className="gap-2"
+                className="rounded-md"
               >
-                Proceed to Checkout
+                Proceed to checkout
               </Button>
             </div>
           )}

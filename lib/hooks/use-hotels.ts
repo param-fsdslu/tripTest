@@ -71,6 +71,26 @@ export function useFeaturedHotels(limit: number = 6) {
   });
 }
 
+async function fetchSimilarHotels(hotelId: string, limit: number): Promise<HotelWithDetails[]> {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const response = await fetch(`${baseUrl}/api/hotels/similar?hotelId=${encodeURIComponent(hotelId)}&limit=${limit}`);
+  if (!response.ok) throw new Error('Failed to fetch similar hotels');
+  const data = await response.json();
+  return data.data;
+}
+
+/**
+ * Other stays in the hotel's city, for its page. Cached for 10 minutes, like featured stays.
+ */
+export function useSimilarHotels(hotelId: string | undefined, limit: number = 2) {
+  return useQuery({
+    queryKey: ['hotels', 'similar', hotelId, limit],
+    queryFn: () => fetchSimilarHotels(hotelId!, limit),
+    enabled: !!hotelId,
+    staleTime: 1000 * 60 * 10,
+  });
+}
+
 /**
  * Fetch function for the destination search index
  */

@@ -3,7 +3,7 @@ import { getRoomInventoryBlocks } from '@/lib/actions/admin/inventory'
 import { getRoomPriceRules } from '@/lib/actions/admin/price-rules'
 import { HotelForm } from '@/components/admin/HotelForm'
 import { HotelImagesManager } from '@/components/admin/HotelImagesManager'
-import { HotelPanoramasManager } from '@/components/admin/HotelPanoramasManager'
+import { PanoramasManager } from '@/components/admin/PanoramasManager'
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
 import { HotelAmenitiesManager } from '@/components/admin/HotelAmenitiesManager'
 import { RoomTypesManager } from '@/components/admin/RoomTypesManager'
@@ -77,7 +77,7 @@ export default async function EditHotelPage({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <RoomTypesManager hotelId={hotel.id} roomTypes={roomTypes} />
+              <RoomTypesManager hotelId={hotel.id} hotelName={hotel.name} roomTypes={roomTypes} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -151,8 +151,8 @@ export default async function EditHotelPage({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <HotelPanoramasManager
-                hotelId={hotel.id}
+              <PanoramasManager
+                owner={{ type: 'hotel', id: hotel.id }}
                 hotelName={hotel.name}
                 panoramas={hotel.hotel_panoramas || []}
               />

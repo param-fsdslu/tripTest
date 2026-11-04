@@ -5,6 +5,8 @@
  * Three rows that never overlap: a top bar (counter, title / caption, zoom, close), the photo
  * filling the rest of the height with previous / next buttons, and a centred thumbnail strip with
  * the keyboard hint. Arrow keys move between photos; Escape closes (the dialog handles it).
+ * 360° photos (`panorama: true`) play in the live 360° viewer, marked "360°" in the strip; arrow
+ * keys pressed inside that viewer look around instead of changing photo.
  *
  * The dialog is made full screen with `max-w-none sm:max-w-none`: the shared DialogContent caps
  * width at `sm:max-w-lg`, which a plain `max-w-full` does not override.
@@ -14,6 +16,7 @@ import Image from 'next/image'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from '@/components/icons'
+import { PanoramaViewer, panoramaViewerSrc } from '@/components/media/PanoramaViewer'
 import { cn } from '@/lib/utils'
 
 export interface LightboxPhoto {
@@ -22,6 +25,8 @@ export interface LightboxPhoto {
   alt: string
   /** Shown in the top bar next to the title */
   caption?: string | null
+  /** A 360° (2:1) photo, shown in the 360° viewer */
+  panorama?: boolean
 }
 
 interface PhotoLightboxProps {
@@ -63,6 +68,7 @@ export function PhotoLightbox({ photos, open, onOpenChange, index, onIndexChange
   useEffect(() => {
     if (!open || count < 2) return
     const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof Element && e.target.closest('[role="application"]')) return // looking around a 360°
       if (e.key === 'ArrowLeft') goTo(index - 1)
       else if (e.key === 'ArrowRight') goTo(index + 1)
     }
@@ -101,16 +107,18 @@ export function PhotoLightbox({ photos, open, onOpenChange, index, onIndexChange
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/15 hover:text-white"
-              onClick={() => setZoomed((z) => !z)}
-              aria-label={zoomed ? 'Zoom out' : 'Zoom in'}
-              title={zoomed ? 'Zoom out' : 'Zoom in'}
-            >
-              {zoomed ? <ZoomOut className="h-5 w-5" /> : <ZoomIn className="h-5 w-5" />}
-            </Button>
+            {!photo.panorama && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-white/15 hover:text-white"
+                onClick={() => setZoomed((z) => !z)}
+                aria-label={zoomed ? 'Zoom out' : 'Zoom in'}
+                title={zoomed ? 'Zoom out' : 'Zoom in'}
+              >
+                {zoomed ? <ZoomOut className="h-5 w-5" /> : <ZoomIn className="h-5 w-5" />}
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -126,29 +134,43 @@ export function PhotoLightbox({ photos, open, onOpenChange, index, onIndexChange
 
         {/* ── The photo ───────────────────────────────────── */}
         <div className="relative min-h-0 flex-1 overflow-hidden">
-          {loading && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-white" />
+          {photo.panorama ? (
+            <div className="absolute inset-4 sm:inset-x-20 sm:inset-y-4">
+              <PanoramaViewer
+                key={photo.id}
+                src={panoramaViewerSrc(photo.src)}
+                title={photo.caption}
+                hotelName={title}
+                className="aspect-auto h-full w-full"
+              />
             </div>
+          ) : (
+            <>
+              {loading && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-white" />
+                </div>
+              )}
+              <div
+                className={cn(
+                  'absolute inset-4 transition-transform duration-300 sm:inset-x-20 sm:inset-y-4',
+                  zoomed ? 'scale-150 cursor-zoom-out' : 'cursor-zoom-in'
+                )}
+                onClick={() => setZoomed((z) => !z)}
+              >
+                <Image
+                  key={photo.id}
+                  src={photo.src}
+                  alt={photo.alt}
+                  fill
+                  priority
+                  sizes="100vw"
+                  className={cn('object-contain transition-opacity duration-300', loading ? 'opacity-0' : 'opacity-100')}
+                  onLoad={() => setLoading(false)}
+                />
+              </div>
+            </>
           )}
-          <div
-            className={cn(
-              'absolute inset-4 transition-transform duration-300 sm:inset-x-20 sm:inset-y-4',
-              zoomed ? 'scale-150 cursor-zoom-out' : 'cursor-zoom-in'
-            )}
-            onClick={() => setZoomed((z) => !z)}
-          >
-            <Image
-              key={photo.id}
-              src={photo.src}
-              alt={photo.alt}
-              fill
-              priority
-              sizes="100vw"
-              className={cn('object-contain transition-opacity duration-300', loading ? 'opacity-0' : 'opacity-100')}
-              onLoad={() => setLoading(false)}
-            />
-          </div>
 
           {count > 1 && (
             <>
@@ -187,7 +209,7 @@ export function PhotoLightbox({ photos, open, onOpenChange, index, onIndexChange
                     type="button"
                     data-index={i}
                     onClick={() => goTo(i)}
-                    aria-label={`Show photo ${i + 1}`}
+                    aria-label={p.panorama ? `Show 360° view ${p.caption ?? ''}`.trim() : `Show photo ${i + 1}`}
                     aria-current={i === index ? 'true' : undefined}
                     className={cn(
                       'relative h-12 w-16 shrink-0 overflow-hidden rounded-lg transition-all sm:h-14 sm:w-20',
@@ -197,12 +219,19 @@ export function PhotoLightbox({ photos, open, onOpenChange, index, onIndexChange
                     )}
                   >
                     <Image src={p.src} alt="" fill sizes="80px" className="object-cover" />
+                    {p.panorama && (
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/35 font-heading text-xs font-extrabold text-white">
+                        360°
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
             </div>
             <p className="mt-2 hidden text-center text-xs text-white/50 md:block">
-              Use ← → to move between photos · Esc to close · Click the photo to zoom
+              {photo.panorama
+                ? 'Drag to look around · Use ← → to move between photos · Esc to close'
+                : 'Use ← → to move between photos · Esc to close · Click the photo to zoom'}
             </p>
           </div>
         )}

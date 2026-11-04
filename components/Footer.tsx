@@ -3,6 +3,7 @@ import { Mail, MapPin, Phone } from '@/components/icons'
 import { isFeatureEnabled } from '@/lib/config/features'
 import { ListPropertyButton } from '@/components/listing/ListPropertyButton'
 import { PackageEnquiryButton } from '@/components/packages/PackageEnquiryButton'
+import { cn } from '@/lib/utils'
 
 const serviceLinks = [
   { href: '/hotels', label: 'Hotels & homestays', show: isFeatureEnabled('hotels') },
@@ -35,9 +36,10 @@ const linkClass = 'text-sm text-white/65 transition-colors hover:text-white'
 /** Contact icons (solid, like every icon from components/icons) in gold */
 const solidIcon = 'h-[18px] w-[18px] shrink-0 text-gold'
 
-export function Footer() {
+/** `className` adds to the footer, e.g. bottom padding to clear a bar pinned over it */
+export function Footer({ className }: { className?: string } = {}) {
   return (
-    <footer className="bg-secondary text-white">
+    <footer className={cn('bg-secondary text-white', className)}>
       <div className="page-container pt-14 pb-8">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1.3fr]">
           {/* Brand */}

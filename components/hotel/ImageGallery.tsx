@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Grid3x3 } from '@/components/icons';
+import { Grid3x3, Rotate3d } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { PhotoLightbox } from '@/components/media/PhotoLightbox';
 import { cn } from '@/lib/utils';
+import type { PanoramaView } from '@/lib/utils/panorama';
 
 interface HotelImage {
   id: string;
@@ -18,11 +19,13 @@ interface HotelImage {
 interface ImageGalleryProps {
   images: HotelImage[];
   hotelName: string;
+  /** The hotel's 360° photos (hotelPanoramaViews): after the photos in the viewer, with their own button */
+  panoramas?: PanoramaView[];
   /** Extra classes for the photo grid (e.g. to stretch it beside the availability card) */
   className?: string;
 }
 
-export function ImageGallery({ images, hotelName, className }: ImageGalleryProps) {
+export function ImageGallery({ images, hotelName, panoramas = [], className }: ImageGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
@@ -119,29 +122,56 @@ export function ImageGallery({ images, hotelName, className }: ImageGalleryProps
           </div>
         ))}
 
-        {/* Show All Photos Button - Bottom Left */}
-        <Button
-          variant="secondary"
-          size="sm"
-          className="absolute bottom-4 left-4 gap-2 bg-white text-foreground hover:bg-white/90 shadow-lg"
-          onClick={() => {
-            setSelectedIndex(0);
-            setIsGalleryOpen(true);
-          }}
-        >
-          <Grid3x3 className="w-4 h-4" />
-          View all {sortedImages.length} photos
-        </Button>
+        {/* Bottom left: all photos, and the 360° views (after the photos in the viewer) */}
+        <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
+          {sortedImages.length > 0 && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="gap-2 bg-white text-foreground hover:bg-white/90 shadow-lg"
+              onClick={() => {
+                setSelectedIndex(0);
+                setIsGalleryOpen(true);
+              }}
+            >
+              <Grid3x3 className="w-4 h-4" />
+              View all {sortedImages.length} {sortedImages.length === 1 ? 'photo' : 'photos'}
+            </Button>
+          )}
+          {panoramas.length > 0 && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="gap-2 bg-white text-foreground hover:bg-white/90 shadow-lg"
+              onClick={() => {
+                setSelectedIndex(sortedImages.length);
+                setIsGalleryOpen(true);
+              }}
+            >
+              <Rotate3d className="w-4 h-4" />
+              360° View
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Full-screen viewer */}
       <PhotoLightbox
-        photos={sortedImages.map((image, i) => ({
-          id: image.id,
-          src: image.image_url,
-          alt: image.alt_text || `${hotelName} - photo ${i + 1}`,
-          caption: image.alt_text,
-        }))}
+        photos={[
+          ...sortedImages.map((image, i) => ({
+            id: image.id,
+            src: image.image_url,
+            alt: image.alt_text || `${hotelName} - photo ${i + 1}`,
+            caption: image.alt_text,
+          })),
+          ...panoramas.map((view) => ({
+            id: view.id,
+            src: view.image_url,
+            alt: `${hotelName} - 360° view: ${view.label}`,
+            caption: `360° · ${view.label}`,
+            panorama: true,
+          })),
+        ]}
         open={isGalleryOpen}
         onOpenChange={setIsGalleryOpen}
         index={selectedIndex}

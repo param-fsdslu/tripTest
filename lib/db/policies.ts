@@ -155,6 +155,7 @@ export const POLICIES: Record<string, Policy[]> = {
     },
   ],
   room_type_images: roomTypeChildPolicies,
+  room_type_panoramas: roomTypeChildPolicies,
   room_type_amenities: roomTypeChildPolicies,
   price_rules: [
     { command: 'select', using: always },

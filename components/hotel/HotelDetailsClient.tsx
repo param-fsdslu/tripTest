@@ -19,7 +19,7 @@
 import { useHotelBySlug } from '@/lib/hooks/use-hotels';
 import Image from 'next/image';
 import { ImageGallery } from './ImageGallery';
-import { PanoramaTour } from './PanoramaTour';
+import { hotelPanoramaViews } from '@/lib/utils/panorama';
 import { RoomComparison } from './RoomComparison';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -44,6 +44,8 @@ import { FREE_CANCELLATION_HOURS } from '@/lib/config/cancellation-policy';
 import { Button } from '@/components/ui/button';
 import { RoomAvailabilityCard } from './RoomAvailabilityCard';
 import { BookingCartBar } from './BookingCartBar';
+import { SimilarStays } from './SimilarStays';
+import { Footer } from '@/components/Footer';
 import { cn, formatCurrency, getInclusivePrice } from '@/lib/utils';
 import { getSavedStay, saveStay, type SavedStay } from '@/lib/actions/saved-stays';
 
@@ -112,7 +114,7 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
 
   // Scroll spy: update active tab based on scroll position
   useEffect(() => {
-    const sectionIds = ['overview', 'tour', 'rooms', 'policies', 'reviews'];
+    const sectionIds = ['overview', 'rooms', 'policies', 'reviews'];
     const handleScroll = () => {
       const tabsHeight = tabsRef.current?.offsetHeight || 60;
       const offset = 80 + tabsHeight; // navbar + tabs height
@@ -252,6 +254,8 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
   // Cheapest room for the chosen dates (weekend/festival pricing when dates are set), all-inclusive
   const roomPrices = (hotel.room_types ?? []).map((room: any) => getInclusivePrice(room.current_price ?? room.base_price));
   const startingPrice = roomPrices.length ? Math.min(...roomPrices) : undefined;
+  // Every 360° photo of the hotel (its own, then each room's), played inside the photo viewer
+  const panoramaViews = hotelPanoramaViews(hotel.hotel_panoramas, hotel.room_types);
   const amenityNames: string[] = (hotel.hotel_amenities ?? []).map((item: any) => item.amenity?.name).filter(Boolean);
   const highlights = amenityNames.slice(0, 4);
   const reviewCount = hotel.review_count ?? 0;
@@ -285,7 +289,7 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
   };
 
   return (
-    <div className={cn('bg-background pt-16 sm:pt-[72px]', cart.size > 0 ? 'pb-24' : 'pb-20 lg:pb-0')}>
+    <div className="bg-background pt-16 sm:pt-[72px]">
       <div className="page-container py-6 space-y-4">
         {/* Compact Breadcrumb */}
         <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -379,10 +383,11 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
       {/* Hero: photos left, room availability right (stacked below lg) */}
       <div className="page-container">
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-stretch">
-          {hotel.hotel_images && hotel.hotel_images.length > 0 && (
+          {(hotel.hotel_images?.length > 0 || panoramaViews.length > 0) && (
             <ImageGallery
-              images={hotel.hotel_images}
+              images={hotel.hotel_images ?? []}
               hotelName={hotel.name}
+              panoramas={panoramaViews}
               className="lg:h-full lg:min-h-[450px]"
             />
           )}
@@ -404,7 +409,6 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
           <nav className="flex gap-0 overflow-x-auto scrollbar-hide">
             {[
               { id: 'overview', label: 'Overview' },
-              ...(hotel.hotel_panoramas?.length ? [{ id: 'tour', label: '360° View' }] : []),
               { id: 'rooms', label: `Rooms${hotel.room_types?.length ? ` (${hotel.room_types.length})` : ''}` },
               { id: 'policies', label: 'Property Rules' },
               { id: 'reviews', label: `Reviews${reviewCount ? ` (${reviewCount})` : ''}` },
@@ -474,13 +478,6 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
                 </Card>
               )}
             </div>
-
-            {/* 360° View */}
-            {hotel.hotel_panoramas && hotel.hotel_panoramas.length > 0 && (
-              <div id="tour">
-                <PanoramaTour hotelName={hotel.name} panoramas={hotel.hotel_panoramas} />
-              </div>
-            )}
 
             {/* Rooms Section */}
             <div id="rooms">
@@ -738,6 +735,11 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
         </div>
       </div>
 
+      <SimilarStays hotelId={hotel.id} city={hotel.city} />
+
+      {/* The bottom padding keeps the footer clear of the bar pinned over it (booking / Select rooms) */}
+      <Footer className={cart.size > 0 ? 'pb-24' : 'pb-20 lg:pb-0'} />
+
       {/* Every screen size: once rooms are added, the booking stays pinned to the bottom */}
       {cart.size > 0 && (
         <BookingCartBar
@@ -770,7 +772,7 @@ export function HotelDetailsClient({ slug }: HotelDetailsClientProps) {
             ) : null}
             <p className="truncate text-xs text-muted-foreground">{staySummary}</p>
           </div>
-          <Button type="button" onClick={() => scrollToSection('rooms')} className="h-11 shrink-0 rounded-full px-6 font-bold">
+          <Button type="button" onClick={() => scrollToSection('rooms')} className="h-11 shrink-0 rounded-md px-6 font-bold">
             Select rooms
           </Button>
         </div>

@@ -942,6 +942,23 @@ export const TABLES: Record<string, TableDef> = {
       { name: 'room_type_images_room_type_id_fkey', column: 'room_type_id', refTable: 'room_types', refColumn: 'id', onDelete: 'cascade' },
     ],
   },
+  room_type_panoramas: {
+    pk: 'id',
+    parent: { table: 'room_types', column: 'room_type_id' },
+    columns: {
+      id: { type: 'uuid', default: { fn: 'uuid' } },
+      room_type_id: { type: 'uuid' },
+      image_url: { type: 'text' },
+      storage_path: { type: 'text' },
+      title: { type: 'text' },
+      display_order: { type: 'int', default: 0 },
+      created_at: { type: 'timestamptz', default: { fn: 'now' } },
+    },
+    unique: [],
+    fks: [
+      { name: 'room_type_panoramas_room_type_id_fkey', column: 'room_type_id', refTable: 'room_types', refColumn: 'id', onDelete: 'cascade' },
+    ],
+  },
   room_types: {
     pk: 'id',
     parent: { table: 'hotels', column: 'hotel_id' },

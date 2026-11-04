@@ -3,7 +3,7 @@
 /**
  * BookingCartBar — pinned to the bottom of the hotel page (phones and desktop) once a room is
  * added to the booking. It updates as rooms are added, re-counted or removed; the summary jumps
- * back to the rooms list, the button goes to checkout.
+ * back to the rooms list, the button goes to checkout. Small 6px corners, not pills, by request.
  */
 import { ArrowRight, BedDouble, CloudCheck, X } from '@/components/icons'
 import { Button } from '@/components/ui/button'
@@ -57,9 +57,9 @@ export function BookingCartBar({ rooms, cart, staySummary, savedToAccount, onEdi
           onClick={onEdit}
           className="group flex min-w-0 flex-1 items-center gap-3 text-left"
         >
-          <span className="relative hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-mint text-primary sm:flex">
+          <span className="relative hidden h-11 w-11 shrink-0 items-center justify-center rounded-md bg-mint text-primary sm:flex">
             <BedDouble className="h-5 w-5" />
-            <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">
+            <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-md bg-primary px-1 text-[11px] font-bold text-primary-foreground">
               {roomCount}
             </span>
           </span>
@@ -104,14 +104,14 @@ export function BookingCartBar({ rooms, cart, staySummary, savedToAccount, onEdi
             size="icon"
             onClick={onClear}
             aria-label="Clear selected rooms"
-            className="text-muted-foreground lg:hidden"
+            className="rounded-md text-muted-foreground lg:hidden"
           >
             <X className="h-4 w-4" />
           </Button>
-          <Button type="button" variant="ghost" onClick={onClear} className="hidden text-muted-foreground lg:inline-flex">
+          <Button type="button" variant="ghost" onClick={onClear} className="hidden rounded-md text-muted-foreground lg:inline-flex">
             Clear
           </Button>
-          <Button type="button" onClick={onCheckout} className="h-11 gap-2 rounded-full px-5 font-bold sm:px-6">
+          <Button type="button" onClick={onCheckout} className="h-11 gap-2 rounded-md px-5 font-bold sm:px-6">
             <span className="sm:hidden">Book now</span>
             <span className="hidden sm:inline">Proceed to checkout</span>
             <ArrowRight className="h-4 w-4" />

@@ -78,14 +78,18 @@ export function getRoomPriceForNight(
   return { date, price: roomType.base_price }
 }
 
-/** Returns each night's date (YYYY-MM-DD) in [checkIn, checkOut). */
+/**
+ * Returns each night's date (YYYY-MM-DD) in [checkIn, checkOut). Counts in UTC so the result is
+ * the same in every timezone: local midnight + toISOString() shifted every night a day back in
+ * India (UTC+5:30), so browsers priced 9–12 Nov for a 10–14 Nov stay.
+ */
 export function getStayNightDates(checkIn: string, checkOut: string): string[] {
   const dates: string[] = []
-  const cursor = new Date(`${checkIn}T00:00:00`)
-  const end = new Date(`${checkOut}T00:00:00`)
+  const cursor = new Date(`${checkIn}T00:00:00Z`)
+  const end = new Date(`${checkOut}T00:00:00Z`)
   while (cursor < end) {
     dates.push(cursor.toISOString().slice(0, 10))
-    cursor.setDate(cursor.getDate() + 1)
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
   }
   return dates
 }

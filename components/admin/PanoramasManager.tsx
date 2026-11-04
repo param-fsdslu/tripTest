@@ -1,6 +1,6 @@
 'use client'
 
-/** 360° photos of a hotel: list with a live preview, upload (shrunk in the browser first), delete */
+/** 360° photos of a hotel or a room type: list with a live preview, upload (shrunk in the browser first), delete */
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -18,17 +18,24 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PanoramaViewer, panoramaViewerSrc } from '@/components/media/PanoramaViewer'
-import { deleteHotelPanorama, uploadHotelPanorama } from '@/lib/actions/admin'
+import {
+  deleteHotelPanorama,
+  deleteRoomTypePanorama,
+  uploadHotelPanorama,
+  uploadRoomTypePanorama,
+} from '@/lib/actions/admin'
 import { PANORAMA_TYPES, preparePanorama } from '@/lib/utils/panorama'
 import type { HotelPanorama } from '@/lib/types/hotel'
 
-interface HotelPanoramasManagerProps {
-  hotelId: string
+interface PanoramasManagerProps {
+  /** Whose photos these are: the hotel itself or one of its room types */
+  owner: { type: 'hotel' | 'room_type'; id: string }
+  /** Shown over the viewer, as on the hotel page */
   hotelName: string
   panoramas: Pick<HotelPanorama, 'id' | 'image_url' | 'title' | 'display_order'>[]
 }
 
-export function HotelPanoramasManager({ hotelId, hotelName, panoramas }: HotelPanoramasManagerProps) {
+export function PanoramasManager({ owner, hotelName, panoramas }: PanoramasManagerProps) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -37,9 +44,10 @@ export function HotelPanoramasManager({ hotelId, hotelName, panoramas }: HotelPa
   const [preparing, setPreparing] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [previewing, setPreviewing] = useState<HotelPanoramasManagerProps['panoramas'][number] | null>(null)
+  const [previewing, setPreviewing] = useState<PanoramasManagerProps['panoramas'][number] | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
+  const forRoom = owner.type === 'room_type'
   const busy = preparing || uploading
   const sorted = [...panoramas].sort((a, b) => a.display_order - b.display_order)
 
@@ -78,7 +86,9 @@ export function HotelPanoramasManager({ hotelId, hotelName, panoramas }: HotelPa
       const formData = new FormData()
       formData.append('file', prepared.file)
       formData.append('title', title)
-      const result = await uploadHotelPanorama(hotelId, formData)
+      const result = forRoom
+        ? await uploadRoomTypePanorama(owner.id, formData)
+        : await uploadHotelPanorama(owner.id, formData)
       if (!result.success) throw new Error(result.error)
       setIsDialogOpen(false)
       resetDialog()
@@ -94,7 +104,7 @@ export function HotelPanoramasManager({ hotelId, hotelName, panoramas }: HotelPa
     if (!confirm('Delete this 360° photo? This action cannot be undone.')) return
     setDeletingId(id)
     try {
-      const result = await deleteHotelPanorama(id)
+      const result = forRoom ? await deleteRoomTypePanorama(id) : await deleteHotelPanorama(id)
       if (result.success) router.refresh()
       else alert(result.error || 'Failed to delete the 360° photo')
     } finally {
@@ -123,7 +133,9 @@ export function HotelPanoramasManager({ hotelId, hotelName, panoramas }: HotelPa
         <Alert>
           <Rotate3d className="h-4 w-4" />
           <AlertDescription>
-            No 360° photos yet. Guests can look around a room or the property in the hotel page's 360° viewer.
+            {forRoom
+              ? 'No 360° photos of this room yet. Guests open them from the room’s card on the hotel page.'
+              : 'No 360° photos yet. Guests can look around the property in the hotel page’s 360° viewer.'}
           </AlertDescription>
         </Alert>
       ) : (
@@ -217,7 +229,7 @@ export function HotelPanoramasManager({ hotelId, hotelName, panoramas }: HotelPa
                 id="panoramaTitle"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Lobby, Deluxe Room, Pool deck"
+                placeholder={forRoom ? 'e.g. Bedroom, Bathroom, Balcony' : 'e.g. Lobby, Deluxe Room, Pool deck'}
                 disabled={busy}
               />
             </div>
@@ -243,7 +255,7 @@ export function HotelPanoramasManager({ hotelId, hotelName, panoramas }: HotelPa
 
       {/* Preview */}
       <Dialog open={previewing !== null} onOpenChange={(open) => !open && setPreviewing(null)}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>{previewing?.title || '360° photo'}</DialogTitle>
             <DialogDescription>This is how guests see it on the hotel page.</DialogDescription>

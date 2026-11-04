@@ -38,10 +38,9 @@ import {
   gstDetailsError,
   gstDetailsForRequest,
 } from '@/components/booking/review/GstDetailsFields'
-import { WhatsAppOptIn } from '@/components/booking/review/WhatsAppOptIn'
 import { PetsOptIn } from '@/components/booking/review/PetsOptIn'
 import {
-  User, Mail, Phone, Users, Baby,
+  ArrowRight, User, Mail, Phone, Users, Baby,
   BedDouble, AlertCircle, CheckCircle2, Loader2,
   UtensilsCrossed, Info, Minus, Plus,
 } from '@/components/icons'
@@ -196,7 +195,6 @@ export function MultiRoomBookingForm({
   const [withPets, setWithPets] = useState(initialPets ?? false)
   const [childrenAges, setChildrenAges] = useState<number[]>([])
   const [specialRequests, setSpecialRequests] = useState('')
-  const [whatsappOptIn, setWhatsappOptIn] = useState(true)
   const [gstEnabled, setGstEnabled] = useState(false)
   const [gstDetails, setGstDetails] = useState(EMPTY_GST_DETAILS)
   const [selectedMealPlanIds, setSelectedMealPlanIds] = useState<string[]>([])
@@ -210,6 +208,7 @@ export function MultiRoomBookingForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [termsAccepted, setTermsAccepted] = useState(false)
+  const [termsMissing, setTermsMissing] = useState(false)
   const [bookingCreated, setBookingCreated] = useState<{
     bookingIds: string[]
     primaryBookingReference: string
@@ -337,10 +336,14 @@ export function MultiRoomBookingForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    // No hint under the button (by request): an unticked agreement turns red instead
+    if (!termsAccepted) {
+      setTermsMissing(true)
+      return
+    }
     setIsSubmitting(true)
 
     try {
-      if (!termsAccepted) throw new Error('Please accept the Terms & Conditions, Privacy Policy, and Refund Policy to continue')
       if (!isValidPhone(phone)) throw new Error('Please enter a valid 10-digit Indian mobile number')
       const gstError = gstDetailsError(gstEnabled, gstDetails)
       if (gstError) throw new Error(gstError)
@@ -364,7 +367,6 @@ export function MultiRoomBookingForm({
         guestEmail: email,
         guestPhone: phone,
         gstDetails: gstDetailsForRequest(gstEnabled, gstDetails),
-        whatsappOptIn,
         withPets,
         checkInDate: format(checkInDate, 'yyyy-MM-dd'),
         checkOutDate: format(checkOutDate, 'yyyy-MM-dd'),
@@ -583,7 +585,6 @@ export function MultiRoomBookingForm({
                     <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 98765 43210" className="pl-9" required />
                   </div>
-                  <WhatsAppOptIn checked={whatsappOptIn} onCheckedChange={setWhatsappOptIn} disabled={!!bookingCreated} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">
@@ -744,10 +745,20 @@ export function MultiRoomBookingForm({
                   <Checkbox
                     id="terms-multi-booking"
                     checked={termsAccepted}
-                    onCheckedChange={(checked) => setTermsAccepted(!!checked)}
-                    className="mt-0.5 shrink-0"
+                    onCheckedChange={(checked) => {
+                      setTermsAccepted(!!checked)
+                      if (checked) setTermsMissing(false)
+                    }}
+                    aria-invalid={termsMissing || undefined}
+                    className={cn('mt-0.5 shrink-0', termsMissing && 'border-destructive ring-2 ring-destructive/25')}
                   />
-                  <label htmlFor="terms-multi-booking" className="text-xs leading-relaxed text-muted-foreground cursor-pointer">
+                  <label
+                    htmlFor="terms-multi-booking"
+                    className={cn(
+                      'text-xs leading-relaxed cursor-pointer',
+                      termsMissing ? 'text-destructive' : 'text-muted-foreground'
+                    )}
+                  >
                     I agree to the{' '}
                     <a href="/terms" target="_blank" className="text-primary underline underline-offset-2 hover:text-primary/80">
                       Terms
@@ -767,21 +778,21 @@ export function MultiRoomBookingForm({
                   type="submit"
                   form="multi-booking-form"
                   size="lg"
-                  className="h-12 w-full rounded-full text-base font-bold"
-                  disabled={isSubmitting || !checkInDate || !checkOutDate || !termsAccepted}
+                  className="h-12 w-full gap-2 rounded-full text-base font-bold shadow-lg shadow-primary/30 transition-shadow hover:shadow-xl hover:shadow-primary/40"
+                  disabled={isSubmitting || !checkInDate || !checkOutDate}
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      <Loader2 className="h-5 w-5 animate-spin" />
                       Creating your booking…
                     </>
                   ) : (
-                    'Proceed to payment'
+                    <>
+                      Proceed to payment
+                      <ArrowRight className="h-5 w-5" />
+                    </>
                   )}
                 </Button>
-                {!termsAccepted && checkInDate && checkOutDate && (
-                  <p className="text-center text-[11px] text-muted-foreground">Tick the box above to continue</p>
-                )}
               </>
             ) : (
               <>

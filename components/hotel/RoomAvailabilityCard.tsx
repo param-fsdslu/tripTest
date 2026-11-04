@@ -4,11 +4,12 @@
  * RoomAvailabilityCard — beside the hotel page photos: room types as large full-photo cards
  * (name, nightly price incl. taxes, capacity and availability for the searched dates over the
  * room photo). Desktop stacks two beside the gallery; phones swipe through all of them.
- * "Select" jumps to that room in the rooms list.
+ * "Select" jumps to that room in the rooms list. StayDatesPicker above them sets the dates.
  */
 import Image from 'next/image'
 import { ArrowRight, BedDouble, Users } from '@/components/icons'
 import { cn, formatCurrency, getInclusivePrice } from '@/lib/utils'
+import { StayDatesPicker } from './StayDatesPicker'
 
 export interface AvailabilityRoom {
   id: string
@@ -53,12 +54,17 @@ export function RoomAvailabilityCard({ rooms, stayLabel, onSelectRoom, onViewAll
       <div className="flex items-end justify-between gap-3">
         <div>
           <h2 className="font-heading text-lg font-bold leading-tight text-foreground">Availability</h2>
-          <p className="text-xs text-muted-foreground">{stayLabel ?? 'Standard nightly prices'}</p>
+          <p className="text-xs text-muted-foreground">
+            {stayLabel ? 'Prices and availability for your dates' : 'Standard nightly prices'}
+          </p>
         </div>
         <span className="shrink-0 rounded-full bg-mint px-2.5 py-1 text-[11px] font-semibold text-primary">
           {openCount} of {rooms.length} open
         </span>
       </div>
+
+      {/* Picking dates reloads the prices and availability below */}
+      <StayDatesPicker />
 
       {/* Phones: swipe sideways; desktop: big cards stacked to the gallery's height */}
       <div className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide sm:-mx-6 sm:scroll-px-6 sm:px-6 lg:mx-0 lg:flex-1 lg:snap-none lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">

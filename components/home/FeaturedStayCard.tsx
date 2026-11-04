@@ -30,7 +30,16 @@ function Dot() {
   return <span aria-hidden="true" className="h-1 w-1 shrink-0 rounded-full bg-white/50" />
 }
 
-export function FeaturedStayCard({ hotel, className }: { hotel: FeaturedStay; className?: string }) {
+export function FeaturedStayCard({
+  hotel,
+  className,
+  imageSizes = '(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw',
+}: {
+  hotel: FeaturedStay
+  className?: string
+  /** next/image `sizes`: the default fits the three-across homepage grid */
+  imageSizes?: string
+}) {
   const [failed, setFailed] = useState<string[]>([])
 
   // Primary photo first, then display order; skip images that failed to load
@@ -57,7 +66,7 @@ export function FeaturedStayCard({ hotel, className }: { hotel: FeaturedStay; cl
           src={image.image_url}
           alt={image.alt_text || hotel.name}
           fill
-          sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw"
+          sizes={imageSizes}
           className="-z-10 object-cover transition-transform duration-700 ease-out group-hover:scale-105"
           onError={() => setFailed((list) => [...list, image.image_url])}
         />

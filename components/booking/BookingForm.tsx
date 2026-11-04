@@ -28,10 +28,10 @@ import {
   gstDetailsError,
   gstDetailsForRequest,
 } from '@/components/booking/review/GstDetailsFields'
-import { WhatsAppOptIn } from '@/components/booking/review/WhatsAppOptIn'
 import { PetsOptIn } from '@/components/booking/review/PetsOptIn'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
+  ArrowRight,
   User,
   Mail,
   Phone,
@@ -162,6 +162,7 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [termsAccepted, setTermsAccepted] = useState(false)
+  const [termsMissing, setTermsMissing] = useState(false)
 
   // Guest Details — auth props take priority, then stored guest details
   const [firstName, setFirstName] = useState(userName?.split(' ')[0] || '')
@@ -205,7 +206,6 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
   const [childrenAges, setChildrenAges] = useState<number[]>([])
   const [numRooms, setNumRooms] = useState(1)
   const [specialRequests, setSpecialRequests] = useState('')
-  const [whatsappOptIn, setWhatsappOptIn] = useState(true)
   const [gstEnabled, setGstEnabled] = useState(false)
   const [gstDetails, setGstDetails] = useState(EMPTY_GST_DETAILS)
   const [selectedMealPlanIds, setSelectedMealPlanIds] = useState<string[]>([])
@@ -295,12 +295,14 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    // No hint under the button (by request): an unticked agreement turns red instead
+    if (!termsAccepted) {
+      setTermsMissing(true)
+      return
+    }
     setIsSubmitting(true)
 
     try {
-      if (!termsAccepted) {
-        throw new Error('Please accept the Terms & Conditions, Privacy Policy, and Refund Policy to continue')
-      }
       if (!isValidPhone(phone)) {
         throw new Error('Please enter a valid 10-digit Indian mobile number')
       }
@@ -328,7 +330,6 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
         guestEmail: email,
         guestPhone: phone,
         gstDetails: gstDetailsForRequest(gstEnabled, gstDetails),
-        whatsappOptIn,
         withPets,
         checkInDate: format(checkInDate, 'yyyy-MM-dd'),
         checkOutDate: format(checkOutDate, 'yyyy-MM-dd'),
@@ -573,7 +574,6 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
                       required
                     />
                   </div>
-                  <WhatsAppOptIn checked={whatsappOptIn} onCheckedChange={setWhatsappOptIn} disabled={!!bookingCreated} />
                 </div>
 
                 <div className="space-y-2">
@@ -767,10 +767,20 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
                   <Checkbox
                     id="terms-booking"
                     checked={termsAccepted}
-                    onCheckedChange={(checked) => setTermsAccepted(!!checked)}
-                    className="mt-0.5 shrink-0"
+                    onCheckedChange={(checked) => {
+                      setTermsAccepted(!!checked)
+                      if (checked) setTermsMissing(false)
+                    }}
+                    aria-invalid={termsMissing || undefined}
+                    className={cn('mt-0.5 shrink-0', termsMissing && 'border-destructive ring-2 ring-destructive/25')}
                   />
-                  <label htmlFor="terms-booking" className="text-xs leading-relaxed text-muted-foreground cursor-pointer">
+                  <label
+                    htmlFor="terms-booking"
+                    className={cn(
+                      'text-xs leading-relaxed cursor-pointer',
+                      termsMissing ? 'text-destructive' : 'text-muted-foreground'
+                    )}
+                  >
                     I agree to the{' '}
                     <a href="/terms" target="_blank" className="text-primary underline underline-offset-2 hover:text-primary/80">
                       Terms
@@ -790,21 +800,21 @@ export function BookingForm({ hotel, room, mealPlans = [], priceRules = [], user
                   type="submit"
                   form="booking-form"
                   size="lg"
-                  className="h-12 w-full rounded-full text-base font-bold"
-                  disabled={isSubmitting || !checkInDate || !checkOutDate || !termsAccepted}
+                  className="h-12 w-full gap-2 rounded-full text-base font-bold shadow-lg shadow-primary/30 transition-shadow hover:shadow-xl hover:shadow-primary/40"
+                  disabled={isSubmitting || !checkInDate || !checkOutDate}
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      <Loader2 className="h-5 w-5 animate-spin" />
                       Creating your booking…
                     </>
                   ) : (
-                    'Proceed to payment'
+                    <>
+                      Proceed to payment
+                      <ArrowRight className="h-5 w-5" />
+                    </>
                   )}
                 </Button>
-                {!termsAccepted && checkInDate && checkOutDate && (
-                  <p className="text-center text-[11px] text-muted-foreground">Tick the box above to continue</p>
-                )}
               </>
             ) : (
               <>

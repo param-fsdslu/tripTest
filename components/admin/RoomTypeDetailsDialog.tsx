@@ -1,7 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import {
   Dialog,
   DialogContent,
@@ -12,31 +10,33 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RoomTypeImagesManager } from './RoomTypeImagesManager'
 import { RoomTypeAmenitiesManager } from './RoomTypeAmenitiesManager'
+import { PanoramasManager } from './PanoramasManager'
 
 interface RoomTypeDetailsDialogProps {
   roomType: any
+  hotelName: string
   onClose: () => void
 }
 
 export function RoomTypeDetailsDialog({
   roomType,
+  hotelName,
   onClose,
 }: RoomTypeDetailsDialogProps) {
-  const router = useRouter()
-
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{roomType.name}</DialogTitle>
           <DialogDescription>
-            Manage images and amenities for this room type
+            Manage images, 360° photos and amenities for this room type
           </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="images" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="images">Images</TabsTrigger>
+            <TabsTrigger value="panoramas">360° Photos</TabsTrigger>
             <TabsTrigger value="amenities">Amenities</TabsTrigger>
           </TabsList>
 
@@ -44,6 +44,14 @@ export function RoomTypeDetailsDialog({
             <RoomTypeImagesManager
               roomTypeId={roomType.id}
               images={roomType.room_type_images || []}
+            />
+          </TabsContent>
+
+          <TabsContent value="panoramas" className="mt-4">
+            <PanoramasManager
+              owner={{ type: 'room_type', id: roomType.id }}
+              hotelName={hotelName}
+              panoramas={roomType.room_type_panoramas || []}
             />
           </TabsContent>
 

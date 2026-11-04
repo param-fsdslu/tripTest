@@ -245,6 +245,7 @@ export class HotelService {
         room_types(
           *,
           room_type_images(id, image_url, alt_text, display_order),
+          room_type_panoramas(id, image_url, title, display_order),
           room_type_amenities(
             id,
             amenity:amenities(id, name, icon)
@@ -321,6 +322,7 @@ export class HotelService {
         room_types(
           *,
           room_type_images(id, image_url, alt_text, display_order),
+          room_type_panoramas(id, image_url, title, display_order),
           room_type_amenities(
             id,
             amenity:amenities(id, name, icon)
@@ -540,25 +542,7 @@ export class HotelService {
 
     const { data, error } = await db
       .from('hotels')
-      .select(
-        `
-        id,
-        name,
-        slug,
-        description,
-        star_rating,
-        property_type,
-        city,
-        state,
-        country,
-        location_rating,
-        status,
-        created_at,
-        hotel_images(image_url, alt_text, is_primary, display_order),
-        room_types(id, name, base_price),
-        reviews(overall_rating)
-      `
-      )
+      .select(STAY_CARD_SELECT)
       .eq('status', 'active')
       .order('location_rating', { ascending: false, nullsFirst: false })
       .limit(limit);
@@ -569,19 +553,73 @@ export class HotelService {
       return [];
     }
 
-    return (data || []).map((hotel: any) => ({
-      ...hotel,
-      hotel_amenities: [],
-      nearby_attractions: [],
-      avg_rating: hotel.reviews?.length
-        ? hotel.reviews.reduce((sum: number, r: any) => sum + r.overall_rating, 0) /
-          hotel.reviews.length /
-          2
-        : undefined,
-      review_count: hotel.reviews?.length || 0,
-      starting_price: hotel.room_types?.length
-        ? Math.min(...hotel.room_types.map((rt: any) => rt.base_price))
-        : undefined,
-    }));
+    return (data || []).map(toStayCard);
   }
+
+  /**
+   * "Similar stays" on a hotel page: other active hotels in the same city only (by request),
+   * the same property type first, then best location rating.
+   */
+  static async getSimilarHotels(hotelId: string, limit: number = 2): Promise<HotelWithDetails[]> {
+    const db = await createClient();
+
+    const [{ data: hotel }, { data, error }] = await Promise.all([
+      db.from('hotels').select('city, property_type').eq('id', hotelId).maybeSingle(),
+      db.from('hotels').select(STAY_CARD_SELECT).eq('status', 'active').neq('id', hotelId),
+    ]);
+
+    if (error) {
+      console.error('Error fetching similar hotels:', error);
+      return [];
+    }
+    if (!hotel?.city) return [];
+
+    return (data || [])
+      .filter((other: any) => sameCity(other.city, hotel.city))
+      .sort(
+        (a: any, b: any) =>
+          Number(b.property_type === hotel.property_type) - Number(a.property_type === hotel.property_type) ||
+          (b.location_rating ?? 0) - (a.location_rating ?? 0)
+      )
+      .slice(0, limit)
+      .map(toStayCard);
+  }
+}
+
+/** Fields for a stay card (home/FeaturedStayCard): featured and similar stays */
+const STAY_CARD_SELECT = `
+  id,
+  name,
+  slug,
+  description,
+  star_rating,
+  property_type,
+  city,
+  district,
+  state,
+  country,
+  location_rating,
+  status,
+  created_at,
+  hotel_images(image_url, alt_text, is_primary, display_order),
+  room_types(id, name, base_price),
+  reviews(overall_rating)
+`;
+
+/** Adds the card's computed fields: rating out of 5, review count, lowest room price */
+function toStayCard(hotel: any): HotelWithDetails {
+  return {
+    ...hotel,
+    hotel_amenities: [],
+    nearby_attractions: [],
+    avg_rating: hotel.reviews?.length
+      ? hotel.reviews.reduce((sum: number, r: any) => sum + r.overall_rating, 0) /
+        hotel.reviews.length /
+        2
+      : undefined,
+    review_count: hotel.reviews?.length || 0,
+    starting_price: hotel.room_types?.length
+      ? Math.min(...hotel.room_types.map((rt: any) => rt.base_price))
+      : undefined,
+  };
 }

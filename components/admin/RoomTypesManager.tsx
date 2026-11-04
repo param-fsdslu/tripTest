@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Plus, Edit, Trash2, Image as ImageIcon, Users } from '@/components/icons'
+import { Plus, Edit, Trash2, Image as ImageIcon, Rotate3d, Users } from '@/components/icons'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { deleteRoomType } from '@/lib/actions/admin'
 import { RoomTypeForm } from './RoomTypeForm'
@@ -30,19 +30,23 @@ interface RoomType {
   num_available_rooms: number
   status: string
   room_type_images?: any[]
+  room_type_panoramas?: any[]
   room_type_amenities?: any[]
 }
 
 interface RoomTypesManagerProps {
   hotelId: string
+  hotelName: string
   roomTypes: RoomType[]
 }
 
-export function RoomTypesManager({ hotelId, roomTypes }: RoomTypesManagerProps) {
+export function RoomTypesManager({ hotelId, hotelName, roomTypes }: RoomTypesManagerProps) {
   const router = useRouter()
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingRoomType, setEditingRoomType] = useState<RoomType | null>(null)
-  const [viewingRoomType, setViewingRoomType] = useState<RoomType | null>(null)
+  // Looked up in the latest props, so photos added in the open dialog show after router.refresh()
+  const [viewingRoomTypeId, setViewingRoomTypeId] = useState<string | null>(null)
+  const viewingRoomType = roomTypes.find((rt) => rt.id === viewingRoomTypeId) ?? null
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
 
   const handleDeleteRoomType = async (roomTypeId: string, roomTypeName: string) => {
@@ -144,6 +148,12 @@ export function RoomTypesManager({ hotelId, roomTypes }: RoomTypesManagerProps) 
                         {roomType.room_type_images.length} {roomType.room_type_images.length === 1 ? 'image' : 'images'}
                       </Badge>
                     )}
+                    {roomType.room_type_panoramas && roomType.room_type_panoramas.length > 0 && (
+                      <Badge variant="outline" className="text-xs">
+                        <Rotate3d className="h-3 w-3 mr-1" />
+                        {roomType.room_type_panoramas.length} × 360°
+                      </Badge>
+                    )}
                     {roomType.room_type_amenities && roomType.room_type_amenities.length > 0 && (
                       <Badge variant="outline" className="text-xs">
                         {roomType.room_type_amenities.length} {roomType.room_type_amenities.length === 1 ? 'amenity' : 'amenities'}
@@ -164,7 +174,7 @@ export function RoomTypesManager({ hotelId, roomTypes }: RoomTypesManagerProps) 
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setViewingRoomType(roomType)}
+                  onClick={() => setViewingRoomTypeId(roomType.id)}
                 >
                   View Details
                 </Button>
@@ -239,7 +249,8 @@ export function RoomTypesManager({ hotelId, roomTypes }: RoomTypesManagerProps) 
       {viewingRoomType && (
         <RoomTypeDetailsDialog
           roomType={viewingRoomType}
-          onClose={() => setViewingRoomType(null)}
+          hotelName={hotelName}
+          onClose={() => setViewingRoomTypeId(null)}
         />
       )}
     </div>
